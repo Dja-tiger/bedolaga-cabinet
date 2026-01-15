@@ -484,7 +484,7 @@ export default function Subscription() {
           {/* Purchased Traffic Packages */}
           {subscription.traffic_purchases && subscription.traffic_purchases.length > 0 && (
             <div className="mb-6">
-              <div className="text-sm text-dark-500 mb-3">{t('subscription.purchasedTraffic', 'Докупленный трафик')}</div>
+              <div className="text-sm text-dark-500 mb-3">{t('subscription.purchasedTraffic')}</div>
               <div className="space-y-3">
                 {subscription.traffic_purchases.map((purchase) => (
                   <div key={purchase.id} className="p-3 rounded-lg bg-dark-800/50 border border-dark-700/50">
@@ -495,14 +495,26 @@ export default function Subscription() {
                         </svg>
                         <span className="text-base font-semibold text-dark-100">{purchase.traffic_gb} ГБ</span>
                       </div>
-                      <div className="text-sm text-dark-400">
-                        {purchase.days_remaining === 0 ? (
-                          <span className="text-orange-500">Истекает сегодня</span>
-                        ) : purchase.days_remaining === 1 ? (
-                          <span className="text-orange-400">Остался 1 день</span>
-                        ) : (
-                          <span>Осталось {purchase.days_remaining} {purchase.days_remaining >= 5 ? 'дней' : purchase.days_remaining === 1 ? 'день' : 'дня'}</span>
-                        )}
+                      <div className="flex flex-col items-end gap-1">
+                        <div className="text-sm text-dark-400">
+                          {purchase.days_remaining === 0 ? (
+                            <span className="text-orange-500">Истекает сегодня</span>
+                          ) : purchase.days_remaining === 1 ? (
+                            <span className="text-orange-400">Остался 1 день</span>
+                          ) : (
+                            <span>Осталось {purchase.days_remaining} {purchase.days_remaining >= 5 ? 'дней' : purchase.days_remaining === 1 ? 'день' : 'дня'}</span>
+                          )}
+                        </div>
+                        <div className="text-xs text-dark-500 flex items-center gap-1">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>{t('subscription.trafficResetAt', 'Сброс')}: {new Date(purchase.expires_at).toLocaleDateString(undefined, {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric'
+                          })}</span>
+                        </div>
                       </div>
                     </div>
                     <div className="relative h-1.5 bg-dark-700 rounded-full overflow-hidden">
