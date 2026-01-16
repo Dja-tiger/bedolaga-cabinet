@@ -348,6 +348,12 @@ export interface Transaction {
   completed_at: string | null
 }
 
+export interface PaymentMethodOption {
+  id: string
+  name: string
+  description?: string | null
+}
+
 export interface PaymentMethod {
   id: string
   name: string
@@ -355,6 +361,7 @@ export interface PaymentMethod {
   min_amount_kopeks: number
   max_amount_kopeks: number
   is_available: boolean
+  options?: PaymentMethodOption[] | null
 }
 
 // Referral types
