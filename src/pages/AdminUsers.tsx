@@ -707,6 +707,14 @@ function UserDetailModal({ userId, onClose, onUpdate }: UserDetailModalProps) {
                           <span className="text-dark-200">{syncStatus.bot_subscription_status || '-'}</span>
                         </div>
                         <div className="flex justify-between">
+                          <span className="text-dark-400">До:</span>
+                          <span className="text-dark-200">
+                            {syncStatus.bot_subscription_end_date
+                              ? new Date(syncStatus.bot_subscription_end_date).toLocaleDateString('ru-RU')
+                              : '-'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
                           <span className="text-dark-400">Трафик:</span>
                           <span className="text-dark-200">{syncStatus.bot_traffic_used_gb.toFixed(2)} ГБ</span>
                         </div>
@@ -726,6 +734,14 @@ function UserDetailModal({ userId, onClose, onUpdate }: UserDetailModalProps) {
                         <div className="flex justify-between">
                           <span className="text-dark-400">Статус:</span>
                           <span className="text-dark-200">{syncStatus.panel_status || '-'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-dark-400">До:</span>
+                          <span className="text-dark-200">
+                            {syncStatus.panel_expire_at
+                              ? new Date(syncStatus.panel_expire_at).toLocaleDateString('ru-RU')
+                              : '-'}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-dark-400">Трафик:</span>
@@ -749,7 +765,7 @@ function UserDetailModal({ userId, onClose, onUpdate }: UserDetailModalProps) {
               <div className="p-4 bg-dark-900/50 rounded-xl">
                 <div className="text-sm text-dark-400 mb-1">Remnawave UUID</div>
                 <div className="text-dark-100 font-mono text-sm break-all">
-                  {user.remnawave_uuid || 'Не привязан'}
+                  {syncStatus?.remnawave_uuid || user.remnawave_uuid || 'Не привязан'}
                 </div>
               </div>
 
