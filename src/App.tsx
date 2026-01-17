@@ -29,6 +29,7 @@ import AdminBroadcasts from './pages/AdminBroadcasts'
 import AdminPromocodes from './pages/AdminPromocodes'
 import AdminCampaigns from './pages/AdminCampaigns'
 import AdminUsers from './pages/AdminUsers'
+import AdminPayments from './pages/AdminPayments'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore()
@@ -250,6 +251,14 @@ function App() {
         element={
           <AdminRoute>
             <AdminUsers />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/payments"
+        element={
+          <AdminRoute>
+            <AdminPayments />
           </AdminRoute>
         }
       />
