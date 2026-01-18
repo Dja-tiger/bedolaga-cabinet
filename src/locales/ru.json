@@ -47,7 +47,11 @@
     "newNotification": "Новое уведомление",
     "clickToView": "Нажмите для просмотра",
     "newTicket": "Новый тикет: {{title}}",
-    "newReply": "Новый ответ в тикете"
+    "newReply": "Новый ответ в тикете: {{title}}",
+    "newTicketTitle": "Новый тикет",
+    "newReplyTitle": "Новый ответ",
+    "newUserReply": "Ответ пользователя в тикете: {{title}}",
+    "newUserReplyTitle": "Ответ пользователя"
   },
   "auth": {
     "login": "Вход",

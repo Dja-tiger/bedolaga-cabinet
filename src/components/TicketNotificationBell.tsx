@@ -35,22 +35,37 @@ export default function TicketNotificationBell({ isAdmin = false }: TicketNotifi
 
   // Show toast for WebSocket notification
   const showWSNotificationToast = useCallback((message: WSMessage) => {
-    const icon = message.type === 'ticket.new' ? (
+    const isNewTicket = message.type === 'ticket.new'
+    const isAdminReply = message.type === 'ticket.admin_reply'
+    const isUserReply = message.type === 'ticket.user_reply'
+
+    const icon = isNewTicket ? (
       <span className="text-lg">🎫</span>
-    ) : message.type === 'ticket.admin_reply' ? (
+    ) : isAdminReply ? (
       <span className="text-lg">💬</span>
     ) : (
       <span className="text-lg">📨</span>
     )
 
-    const toastMessage = message.message ||
-      (message.type === 'ticket.new'
-        ? t('notifications.newTicket', 'New ticket: {{title}}', { title: message.title })
-        : t('notifications.newReply', 'New reply in ticket'))
+    const ticketTitle = message.title || ''
+
+    let toastTitle: string
+    let toastMessage: string
+
+    if (isNewTicket) {
+      toastTitle = t('notifications.newTicketTitle', 'New Ticket')
+      toastMessage = message.message || t('notifications.newTicket', 'New ticket: {{title}}', { title: ticketTitle })
+    } else if (isUserReply) {
+      toastTitle = t('notifications.newUserReplyTitle', 'User Reply')
+      toastMessage = message.message || t('notifications.newUserReply', 'User replied in ticket: {{title}}', { title: ticketTitle })
+    } else {
+      toastTitle = t('notifications.newReplyTitle', 'New Reply')
+      toastMessage = message.message || t('notifications.newReply', 'New reply in ticket: {{title}}', { title: ticketTitle })
+    }
 
     showToast({
       type: 'info',
-      title: message.type === 'ticket.new' ? t('notifications.newTicketTitle', 'New Ticket') : t('notifications.newReplyTitle', 'New Reply'),
+      title: toastTitle,
       message: toastMessage,
       icon,
       onClick: () => {
@@ -189,7 +204,7 @@ export default function TicketNotificationBell({ isAdmin = false }: TicketNotifi
 
       {/* Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-dark-900/95 backdrop-blur-xl border border-dark-700/50 rounded-2xl shadow-2xl shadow-black/30 overflow-hidden z-50 animate-scale-in">
+        <div className="fixed sm:absolute top-16 sm:top-auto right-4 sm:right-0 left-4 sm:left-auto mt-0 sm:mt-2 w-auto sm:w-96 bg-dark-900/95 backdrop-blur-xl border border-dark-700/50 rounded-2xl shadow-2xl shadow-black/30 overflow-hidden z-50 animate-scale-in">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-dark-700/50 bg-dark-800/30">
             <h3 className="text-sm font-semibold text-dark-100">

@@ -47,7 +47,11 @@
     "newNotification": "New notification",
     "clickToView": "Click to view",
     "newTicket": "New ticket: {{title}}",
-    "newReply": "New reply in ticket"
+    "newReply": "New reply in ticket: {{title}}",
+    "newTicketTitle": "New Ticket",
+    "newReplyTitle": "New Reply",
+    "newUserReply": "User replied in ticket: {{title}}",
+    "newUserReplyTitle": "User Reply"
   },
   "auth": {
     "login": "Login",
