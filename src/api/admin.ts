@@ -153,6 +153,15 @@ export interface NodeStatus {
   users_online: number
   traffic_used_bytes?: number
   uptime?: string
+  xray_version?: string
+  node_version?: string
+  last_status_message?: string
+  xray_uptime?: string
+  is_xray_running?: boolean
+  cpu_count?: number
+  cpu_model?: string
+  total_ram?: string
+  country_code?: string
 }
 
 export interface NodesOverview {
@@ -225,6 +234,75 @@ export interface DashboardStats {
   tariff_stats?: TariffStats
 }
 
+// ============ Extended Stats Types ============
+
+export interface TopReferrerItem {
+  user_id: number
+  telegram_id: number
+  username?: string
+  display_name: string
+  invited_count: number
+  invited_today: number
+  invited_week: number
+  invited_month: number
+  earnings_today_kopeks: number
+  earnings_week_kopeks: number
+  earnings_month_kopeks: number
+  earnings_total_kopeks: number
+}
+
+export interface TopReferrersResponse {
+  by_earnings: TopReferrerItem[]
+  by_invited: TopReferrerItem[]
+  total_referrers: number
+  total_referrals: number
+  total_earnings_kopeks: number
+}
+
+export interface TopCampaignItem {
+  id: number
+  name: string
+  start_parameter: string
+  bonus_type: string
+  is_active: boolean
+  registrations: number
+  conversions: number
+  conversion_rate: number
+  total_revenue_kopeks: number
+  avg_revenue_per_user_kopeks: number
+  created_at?: string
+}
+
+export interface TopCampaignsResponse {
+  campaigns: TopCampaignItem[]
+  total_campaigns: number
+  total_registrations: number
+  total_revenue_kopeks: number
+}
+
+export interface RecentPaymentItem {
+  id: number
+  user_id: number
+  telegram_id: number
+  username?: string
+  display_name: string
+  amount_kopeks: number
+  amount_rubles: number
+  type: string
+  type_display: string
+  payment_method?: string
+  description?: string
+  created_at: string
+  is_completed: boolean
+}
+
+export interface RecentPaymentsResponse {
+  payments: RecentPaymentItem[]
+  total_count: number
+  total_today_kopeks: number
+  total_week_kopeks: number
+}
+
 // ============ Dashboard Stats API ============
 
 export const statsApi = {
@@ -249,6 +327,24 @@ export const statsApi = {
   // Toggle node (enable/disable)
   toggleNode: async (nodeUuid: string): Promise<{ success: boolean; message: string; is_disabled: boolean }> => {
     const response = await apiClient.post(`/cabinet/admin/stats/nodes/${nodeUuid}/toggle`)
+    return response.data
+  },
+
+  // Get top referrers
+  getTopReferrers: async (limit: number = 20): Promise<TopReferrersResponse> => {
+    const response = await apiClient.get('/cabinet/admin/stats/referrals/top', { params: { limit } })
+    return response.data
+  },
+
+  // Get top campaigns
+  getTopCampaigns: async (limit: number = 20): Promise<TopCampaignsResponse> => {
+    const response = await apiClient.get('/cabinet/admin/stats/campaigns/top', { params: { limit } })
+    return response.data
+  },
+
+  // Get recent payments
+  getRecentPayments: async (limit: number = 50): Promise<RecentPaymentsResponse> => {
+    const response = await apiClient.get('/cabinet/admin/stats/payments/recent', { params: { limit } })
     return response.data
   },
 }
