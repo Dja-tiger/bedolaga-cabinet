@@ -386,8 +386,11 @@ export default function ConnectionModal({ onClose }: ConnectionModalProps) {
   // Main view
   return (
     <Wrapper>
-      {/* Header - app selector */}
-      <div className="p-4 border-b border-dark-800">
+      <div className="flex items-center gap-3 px-4 pt-4 pb-2">
+        <h2 className="text-lg font-bold text-dark-100 flex-1">{t('subscription.connection.title')}</h2>
+      </div>
+
+      <div className="px-4 pb-4 border-b border-dark-800">
         <button
           onClick={() => setShowAppSelector(true)}
           className="w-full flex items-center gap-4 p-3 rounded-2xl bg-dark-800/50 hover:bg-dark-800 transition-colors"

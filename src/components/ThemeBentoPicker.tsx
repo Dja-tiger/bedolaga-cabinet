@@ -273,6 +273,7 @@ export function ThemeBentoPicker({
   const [hexInput, setHexInput] = useState(currentColors.accent)
   const [hasChanges, setHasChanges] = useState(false)
 
+  const [isPresetsOpen, setIsPresetsOpen] = useState(false)
   const [isAccentOpen, setIsAccentOpen] = useState(false)
   const [isDarkOpen, setIsDarkOpen] = useState(false)
   const [isLightOpen, setIsLightOpen] = useState(false)
@@ -357,11 +358,14 @@ export function ThemeBentoPicker({
 
   return (
     <div className="space-y-5">
-      <div>
-        <h3 className="text-xs font-medium text-dark-400 uppercase tracking-wide mb-3">
-          {t('admin.theme.quickPresets', 'Quick Presets')}
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 auto-rows-fr gap-4 p-2">
+      <CollapsibleSection
+        title={t('admin.theme.quickPresets', 'Quick Presets')}
+        icon={<PaletteIcon />}
+        badge={`${COLOR_PRESETS.length}`}
+        isOpen={isPresetsOpen}
+        onToggle={() => setIsPresetsOpen(!isPresetsOpen)}
+      >
+        <div className="grid grid-cols-2 sm:grid-cols-3 auto-rows-fr gap-4 p-1">
           {COLOR_PRESETS.map((preset, index) => (
             <div key={preset.id} className="min-h-[100px]" style={{ '--stagger': index } as React.CSSProperties}>
               <PresetCard
@@ -372,7 +376,7 @@ export function ThemeBentoPicker({
             </div>
           ))}
         </div>
-      </div>
+      </CollapsibleSection>
 
       <div className="space-y-2">
         <h3 className="text-xs font-medium text-dark-400 uppercase tracking-wide">
