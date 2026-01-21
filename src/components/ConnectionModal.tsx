@@ -442,17 +442,20 @@ export default function ConnectionModal({ onClose }: ConnectionModalProps) {
                   {t('subscription.connection.addToApp', { appName: selectedApp.name })}
                 </button>
               )}
-              <button
-                onClick={copySubscriptionLink}
-                className={`w-full h-11 rounded-xl border transition-all flex items-center justify-center gap-2 text-sm font-medium ${
-                  copied
-                    ? 'border-success-500 bg-success-500/10 text-success-400'
-                    : 'border-dark-600 text-dark-300 hover:bg-dark-800'
-                }`}
-              >
-                {copied ? <CheckIcon /> : <CopyIcon />}
-                {copied ? t('subscription.connection.copied') : t('subscription.connection.copyLink')}
-              </button>
+              {/* Copy link button - hidden when hideLink is true */}
+              {!appConfig?.hideLink && (
+                <button
+                  onClick={copySubscriptionLink}
+                  className={`w-full h-11 rounded-xl border transition-all flex items-center justify-center gap-2 text-sm font-medium ${
+                    copied
+                      ? 'border-success-500 bg-success-500/10 text-success-400'
+                      : 'border-dark-600 text-dark-300 hover:bg-dark-800'
+                  }`}
+                >
+                  {copied ? <CheckIcon /> : <CopyIcon />}
+                  {copied ? t('subscription.connection.copied') : t('subscription.connection.copyLink')}
+                </button>
+              )}
             </div>
           </div>
         )}
