@@ -98,6 +98,12 @@ const MoonIcon = () => (
   </svg>
 )
 
+const MenuIcon = () => (
+  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+  </svg>
+)
+
 // ============ SIDEBAR MENU ITEMS ============
 interface MenuItem {
   id: string
@@ -158,7 +164,7 @@ export default function AdminSettings() {
   const [editingName, setEditingName] = useState(false)
   const [newName, setNewName] = useState('')
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['presets']))
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Favorites hook
   const { favorites, toggleFavorite, isFavorite } = useFavoriteSettings()
@@ -844,25 +850,41 @@ export default function AdminSettings() {
 
   // ============ RENDER ============
   return (
-    <div className="flex h-full min-h-[600px]">
-      {/* Sidebar */}
-      <div className={`flex-shrink-0 bg-dark-900/50 border-r border-dark-700/50 transition-all ${
-        sidebarCollapsed ? 'w-16' : 'w-64'
-      }`}>
+    <div className="relative min-h-screen">
+      {/* Mobile overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - hidden on mobile, visible on desktop */}
+      <div className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        w-64 bg-dark-900 border-r border-dark-700/50
+        transform transition-transform duration-200 ease-in-out
+        ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
         {/* Header */}
         <div className="p-4 border-b border-dark-700/50">
           <div className="flex items-center gap-3">
             <Link to="/admin" className="p-2 rounded-xl bg-dark-800 hover:bg-dark-700 transition-colors">
               <BackIcon />
             </Link>
-            {!sidebarCollapsed && (
-              <h1 className="text-lg font-bold text-dark-100">{t('admin.settings.title')}</h1>
-            )}
+            <h1 className="text-lg font-bold text-dark-100">{t('admin.settings.title')}</h1>
+            {/* Close button on mobile */}
+            <button
+              onClick={() => setMobileMenuOpen(false)}
+              className="ml-auto p-2 rounded-xl bg-dark-800 hover:bg-dark-700 transition-colors lg:hidden"
+            >
+              <CloseIcon />
+            </button>
           </div>
         </div>
 
         {/* Menu */}
-        <nav className="p-2 space-y-1">
+        <nav className="p-2 space-y-1 overflow-y-auto max-h-[calc(100vh-80px)]">
           {MENU_SECTIONS.map((section, sectionIdx) => (
             <div key={section.id}>
               {sectionIdx > 0 && <div className="my-3 border-t border-dark-700/50" />}
@@ -875,6 +897,7 @@ export default function AdminSettings() {
                     onClick={() => {
                       setActiveSection(item.id)
                       setActiveSubCategory(null)
+                      setMobileMenuOpen(false)
                     }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
                       isActive
@@ -883,10 +906,8 @@ export default function AdminSettings() {
                     }`}
                   >
                     {Icon && <Icon filled={isActive && item.id === 'favorites'} />}
-                    {!sidebarCollapsed && (
-                      <span className="font-medium">{t(`admin.settings.${item.id}`)}</span>
-                    )}
-                    {item.id === 'favorites' && favorites.length > 0 && !sidebarCollapsed && (
+                    <span className="font-medium">{t(`admin.settings.${item.id}`)}</span>
+                    {item.id === 'favorites' && favorites.length > 0 && (
                       <span className="ml-auto px-2 py-0.5 text-xs rounded-full bg-warning-500/20 text-warning-400">
                         {favorites.length}
                       </span>
@@ -897,47 +918,62 @@ export default function AdminSettings() {
             </div>
           ))}
         </nav>
-
-        {/* Collapse toggle */}
-        <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="absolute bottom-4 left-4 p-2 rounded-lg text-dark-500 hover:text-dark-300 hover:bg-dark-800 transition-colors"
-        >
-          <div className={`transition-transform ${sidebarCollapsed ? 'rotate-180' : ''}`}>
-            <ChevronRightIcon />
-          </div>
-        </button>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 overflow-auto">
-        {/* Search header */}
-        <div className="sticky top-0 z-10 bg-dark-900/80 backdrop-blur-xl border-b border-dark-700/50 p-4">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-semibold text-dark-100">
+      <div className="lg:ml-64">
+        {/* Header */}
+        <div className="sticky top-0 z-30 bg-dark-900/95 backdrop-blur-xl border-b border-dark-700/50 p-3 sm:p-4">
+          <div className="flex items-center gap-3">
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileMenuOpen(true)}
+              className="p-2 rounded-xl bg-dark-800 hover:bg-dark-700 transition-colors lg:hidden"
+            >
+              <MenuIcon />
+            </button>
+
+            <h2 className="text-lg sm:text-xl font-semibold text-dark-100 truncate">
               {t(`admin.settings.${activeSection}`)}
               {activeSubCategory && (
-                <span className="text-dark-400 font-normal"> / {t(`admin.settings.categories.${activeSubCategory}`, activeSubCategory)}</span>
+                <span className="text-dark-400 font-normal text-sm sm:text-base"> / {t(`admin.settings.categories.${activeSubCategory}`, activeSubCategory)}</span>
               )}
             </h2>
+
             <div className="flex-1" />
-            <div className="relative">
+
+            {/* Search - hidden on very small screens */}
+            <div className="relative hidden sm:block">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder={t('admin.settings.searchPlaceholder')}
-                className="w-64 pl-10 pr-4 py-2 rounded-xl bg-dark-800 border border-dark-700 text-dark-100 placeholder-dark-500 focus:outline-none focus:border-accent-500"
+                className="w-48 lg:w-64 pl-10 pr-4 py-2 rounded-xl bg-dark-800 border border-dark-700 text-dark-100 placeholder-dark-500 focus:outline-none focus:border-accent-500 text-sm"
               />
               <div className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-500">
                 <SearchIcon />
               </div>
             </div>
           </div>
+
+          {/* Mobile search */}
+          <div className="relative mt-3 sm:hidden">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('admin.settings.searchPlaceholder')}
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-dark-800 border border-dark-700 text-dark-100 placeholder-dark-500 focus:outline-none focus:border-accent-500 text-sm"
+            />
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-dark-500">
+              <SearchIcon />
+            </div>
+          </div>
         </div>
 
         {/* Content */}
-        <div className="p-6">
+        <div className="p-3 sm:p-4 lg:p-6">
           {activeSection === 'favorites' && renderFavoritesContent()}
           {activeSection === 'branding' && renderBrandingContent()}
           {activeSection === 'theme' && renderThemeContent()}
