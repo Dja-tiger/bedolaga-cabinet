@@ -17,7 +17,7 @@ export function formatSettingKey(name: string): string {
 // Strip HTML tags and template descriptions from setting descriptions
 export function stripHtml(html: string): string {
   if (!html) return ''
-  let cleaned = html
+  const cleaned = html
     .replace(/<[^>]*>/g, '')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
