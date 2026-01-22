@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
@@ -136,6 +136,22 @@ export default function ConnectionModal({ onClose }: ConnectionModalProps) {
   const { isTelegramWebApp, isFullscreen, safeAreaInset, contentSafeAreaInset, webApp } = useTelegramWebApp()
   const isMobileScreen = useIsMobile()
   const isMobile = isMobileScreen
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+
+  // Prevent scroll events from bubbling to parent/Telegram
+  const handleScrollContainerWheel = useCallback((e: React.WheelEvent) => {
+    const container = e.currentTarget
+    const { scrollTop, scrollHeight, clientHeight } = container
+    const isAtTop = scrollTop === 0
+    const isAtBottom = scrollTop + clientHeight >= scrollHeight - 1
+
+    // Prevent scroll propagation when not at boundaries, or when scrolling away from boundary
+    if ((!isAtTop && !isAtBottom) ||
+        (isAtTop && e.deltaY > 0) ||
+        (isAtBottom && e.deltaY < 0)) {
+      e.stopPropagation()
+    }
+  }, [])
 
   const safeBottom = isTelegramWebApp ? Math.max(safeAreaInset.bottom, contentSafeAreaInset.bottom) : 0
   const safeTop = isTelegramWebApp ? Math.max(safeAreaInset.top, contentSafeAreaInset.top) + (isFullscreen ? 45 : 0) : 0
@@ -324,7 +340,12 @@ export default function ConnectionModal({ onClose }: ConnectionModalProps) {
           </button>
           <h2 className="font-bold text-dark-100 text-lg">{t('subscription.connection.selectApp')}</h2>
         </div>
-        <div className={`${isMobile ? 'flex-1' : 'max-h-[60vh]'} overflow-y-auto p-4 space-y-6`}>
+        <div
+          ref={scrollContainerRef}
+          className={`${isMobile ? 'flex-1' : 'max-h-[60vh]'} overflow-y-auto p-4 space-y-6`}
+          style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+          onWheel={handleScrollContainerWheel}
+        >
           {availablePlatforms.map(platform => {
             const apps = appConfig.platforms[platform]
             if (!apps?.length) return null
@@ -417,7 +438,11 @@ export default function ConnectionModal({ onClose }: ConnectionModalProps) {
         </button>
       </div>
 
-      <div className={`${isMobile ? 'flex-1' : 'max-h-[50vh]'} overflow-y-auto p-4 space-y-4`}>
+      <div
+        className={`${isMobile ? 'flex-1' : 'max-h-[50vh]'} overflow-y-auto p-4 space-y-4`}
+        style={{ overscrollBehavior: 'contain', WebkitOverflowScrolling: 'touch' }}
+        onWheel={handleScrollContainerWheel}
+      >
         {selectedApp?.installationStep && (
           <div className="space-y-2">
             <div className="flex items-center gap-2">
