@@ -709,6 +709,8 @@
       "animatedBackgroundDesc": "Волны на фоне приложения",
       "autoFullscreen": "Авто-Fullscreen",
       "autoFullscreenDesc": "В Telegram WebApp",
+      "emailAuth": "Email авторизация",
+      "emailAuthDesc": "Регистрация и вход через email",
       "availableThemes": "Доступные темы",
       "darkTheme": "Тёмная",
       "lightTheme": "Светлая",
