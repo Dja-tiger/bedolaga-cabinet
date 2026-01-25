@@ -86,7 +86,12 @@
     "emailAlreadyRegistered": "Этот email уже зарегистрирован",
     "invalidCredentials": "Неверный email или пароль",
     "tooManyAttempts": "Слишком много попыток. Попробуйте позже",
-    "verificationEmailNotice": "После регистрации на вашу почту будет отправлено письмо для подтверждения"
+    "verificationEmailNotice": "После регистрации на вашу почту будет отправлено письмо для подтверждения",
+    "checkEmail": "Проверьте почту",
+    "verificationSent": "Мы отправили ссылку для подтверждения на:",
+    "clickLinkToVerify": "Перейдите по ссылке в письме, чтобы подтвердить аккаунт и войти.",
+    "backToLogin": "Вернуться ко входу",
+    "emailNotVerified": "Сначала подтвердите email"
   },
   "emailVerification": {
     "title": "Подтверждение email",
@@ -94,6 +99,7 @@
     "pleaseWait": "Пожалуйста, подождите пока мы проверяем ваш email.",
     "success": "Email подтверждён!",
     "successMessage": "Ваш email успешно подтверждён. Теперь вы можете входить с помощью email и пароля.",
+    "redirecting": "Переходим в личный кабинет...",
     "failed": "Ошибка подтверждения",
     "goToLogin": "Перейти к входу"
   },

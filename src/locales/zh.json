@@ -75,7 +75,12 @@
     "welcomeBack": "欢迎回来！",
     "loginTitle": "登录个人中心",
     "loginSubtitle": "通过Telegram或邮箱登录",
-    "referralInvite": "您已通过推荐链接受邀！"
+    "referralInvite": "您已通过推荐链接受邀！",
+    "checkEmail": "请查收邮件",
+    "verificationSent": "我们已发送验证链接至：",
+    "clickLinkToVerify": "点击邮件中的链接验证账户并登录。",
+    "backToLogin": "返回登录",
+    "emailNotVerified": "请先验证邮箱"
   },
   "emailVerification": {
     "title": "邮箱验证",
@@ -83,6 +88,7 @@
     "pleaseWait": "请稍候，我们正在验证您的邮箱。",
     "success": "邮箱已验证！",
     "successMessage": "您的邮箱已成功验证。现在您可以使用邮箱和密码登录。",
+    "redirecting": "正在跳转到个人中心...",
     "failed": "验证失败",
     "goToLogin": "前往登录"
   },

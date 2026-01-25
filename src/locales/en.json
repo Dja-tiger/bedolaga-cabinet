@@ -86,7 +86,12 @@
     "emailAlreadyRegistered": "This email is already registered",
     "invalidCredentials": "Invalid email or password",
     "tooManyAttempts": "Too many attempts. Please try again later",
-    "verificationEmailNotice": "After registration, a verification email will be sent to your address"
+    "verificationEmailNotice": "After registration, a verification email will be sent to your address",
+    "checkEmail": "Check your email",
+    "verificationSent": "We sent a verification link to:",
+    "clickLinkToVerify": "Click the link in the email to verify your account and log in.",
+    "backToLogin": "Back to login",
+    "emailNotVerified": "Please verify your email first"
   },
   "emailVerification": {
     "title": "Email Verification",
@@ -94,6 +99,7 @@
     "pleaseWait": "Please wait while we verify your email address.",
     "success": "Email Verified!",
     "successMessage": "Your email has been successfully verified. You can now log in with your email and password.",
+    "redirecting": "Redirecting to dashboard...",
     "failed": "Verification Failed",
     "goToLogin": "Go to Login"
   },
