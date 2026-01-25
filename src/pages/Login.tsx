@@ -3,6 +3,7 @@ import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
+import { authApi } from '../api/auth'
 import { brandingApi, getCachedBranding, setCachedBranding, preloadLogo, isLogoPreloaded, type BrandingInfo, type EmailAuthEnabled } from '../api/branding'
 import { getAndClearReturnUrl } from '../utils/token'
 import LanguageSwitcher from '../components/LanguageSwitcher'
@@ -33,6 +34,11 @@ export default function Login() {
   const [isTelegramWebApp, setIsTelegramWebApp] = useState(false)
   const [logoLoaded, setLogoLoaded] = useState(() => isLogoPreloaded())
   const [registeredEmail, setRegisteredEmail] = useState<string | null>(null)
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('')
+  const [forgotPasswordSent, setForgotPasswordSent] = useState(false)
+  const [forgotPasswordLoading, setForgotPasswordLoading] = useState(false)
+  const [forgotPasswordError, setForgotPasswordError] = useState('')
 
   // Получаем URL для возврата после авторизации
   const getReturnUrl = useCallback(() => {
@@ -184,6 +190,36 @@ export default function Login() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setForgotPasswordError('')
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!forgotPasswordEmail.trim() || !emailRegex.test(forgotPasswordEmail.trim())) {
+      setForgotPasswordError(t('auth.invalidEmail', 'Please enter a valid email address'))
+      return
+    }
+
+    setForgotPasswordLoading(true)
+    try {
+      await authApi.forgotPassword(forgotPasswordEmail.trim())
+      setForgotPasswordSent(true)
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number; data?: { detail?: string } } }
+      const detail = error.response?.data?.detail
+      setForgotPasswordError(detail || t('common.error'))
+    } finally {
+      setForgotPasswordLoading(false)
+    }
+  }
+
+  const closeForgotPasswordModal = () => {
+    setShowForgotPassword(false)
+    setForgotPasswordEmail('')
+    setForgotPasswordSent(false)
+    setForgotPasswordError('')
   }
 
   return (
@@ -446,15 +482,102 @@ export default function Login() {
 
               {/* Forgot password link - only for login */}
               {authMode === 'login' && (
-                <p className="text-center text-xs text-dark-500">
-                  {t('auth.registerHint')}
-                </p>
+                <div className="text-center space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowForgotPassword(true)}
+                    className="text-sm text-accent-400 hover:text-accent-300 transition-colors"
+                  >
+                    {t('auth.forgotPassword', 'Forgot password?')}
+                  </button>
+                </div>
               )}
             </div>
           )}
         </div>
         )}
       </div>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60" onClick={closeForgotPasswordModal} />
+          <div className="relative bg-dark-900 rounded-2xl p-6 w-full max-w-md border border-dark-700">
+            <button
+              onClick={closeForgotPasswordModal}
+              className="absolute top-4 right-4 text-dark-400 hover:text-dark-200 transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {forgotPasswordSent ? (
+              <div className="text-center">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-success-500/20 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-success-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-dark-50 mb-2">
+                  {t('auth.checkEmail', 'Check your email')}
+                </h3>
+                <p className="text-dark-400 mb-4">
+                  {t('auth.passwordResetSent', 'If an account exists with this email, we sent password reset instructions.')}
+                </p>
+                <button onClick={closeForgotPasswordModal} className="btn-primary w-full">
+                  {t('common.close', 'Close')}
+                </button>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-xl font-bold text-dark-50 mb-2">
+                  {t('auth.forgotPassword', 'Forgot password?')}
+                </h3>
+                <p className="text-dark-400 mb-6">
+                  {t('auth.forgotPasswordHint', 'Enter your email and we will send you instructions to reset your password.')}
+                </p>
+
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div>
+                    <label htmlFor="forgotEmail" className="label">Email</label>
+                    <input
+                      id="forgotEmail"
+                      type="email"
+                      value={forgotPasswordEmail}
+                      onChange={(e) => setForgotPasswordEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="input"
+                      autoFocus
+                    />
+                  </div>
+
+                  {forgotPasswordError && (
+                    <div className="bg-error-500/10 border border-error-500/30 text-error-400 px-4 py-3 rounded-xl text-sm">
+                      {forgotPasswordError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={forgotPasswordLoading}
+                    className="btn-primary w-full"
+                  >
+                    {forgotPasswordLoading ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        {t('common.loading')}
+                      </span>
+                    ) : (
+                      t('auth.sendResetLink', 'Send reset link')
+                    )}
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
