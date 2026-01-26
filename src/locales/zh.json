@@ -369,7 +369,8 @@
       "tariffs": "套餐",
       "servers": "服务器",
       "broadcasts": "群发",
-      "emailTemplates": "邮件模板"
+      "emailTemplates": "邮件模板",
+      "paymentMethods": "支付方式"
     },
     "panel": {
       "title": "管理面板",
@@ -382,7 +383,42 @@
       "tariffsDesc": "管理套餐计划",
       "serversDesc": "配置VPN服务器",
       "broadcastsDesc": "向用户群发消息",
-      "emailTemplatesDesc": "管理邮件通知模板"
+      "emailTemplatesDesc": "管理邮件通知模板",
+      "paymentMethodsDesc": "配置支付方式排序和显示条件"
+    },
+    "paymentMethods": {
+      "title": "支付方式",
+      "description": "配置显示顺序和条件",
+      "enabled": "开启",
+      "disabled": "关闭",
+      "notConfigured": "未配置",
+      "dragToReorder": "拖拽排序",
+      "dragHint": "拖拽卡片更改排序。点击进行配置。",
+      "saveOrder": "保存排序",
+      "orderSaved": "排序已保存",
+      "saved": "设置已保存",
+      "noMethods": "没有配置支付方式",
+      "methodEnabled": "启用方式",
+      "providerNotConfigured": "env中未配置提供商",
+      "displayName": "显示名称",
+      "displayNameHint": "留空使用默认名称",
+      "subOptions": "支付选项",
+      "minAmount": "最小金额（戈比）",
+      "maxAmount": "最大金额（戈比）",
+      "conditions": "显示条件",
+      "userTypeFilter": "用户类型",
+      "userTypeAll": "全部",
+      "userTypeTelegram": "Telegram",
+      "userTypeEmail": "Email",
+      "firstTopupFilter": "首次充值",
+      "firstTopupAny": "不限",
+      "firstTopupYes": "已充值",
+      "firstTopupNo": "未充值",
+      "promoGroupFilter": "促销组",
+      "promoGroupAll": "所有组",
+      "promoGroupSelected": "选定的",
+      "promoGroupsShort": "组",
+      "noPromoGroups": "没有促销组"
     },
     "emailTemplates": {
       "title": "邮件模板",

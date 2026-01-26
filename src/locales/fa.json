@@ -368,7 +368,8 @@
       "tariffs": "تعرفه‌ها",
       "servers": "سرورها",
       "broadcasts": "پیام‌رسانی",
-      "emailTemplates": "قالب‌های ایمیل"
+      "emailTemplates": "قالب‌های ایمیل",
+      "paymentMethods": "روش‌های پرداخت"
     },
     "panel": {
       "title": "پنل مدیریت",
@@ -381,7 +382,8 @@
       "tariffsDesc": "مدیریت طرح‌های تعرفه",
       "serversDesc": "تنظیم سرورهای VPN",
       "broadcastsDesc": "ارسال پیام گروهی به کاربران",
-      "emailTemplatesDesc": "مدیریت قالب‌های اعلان ایمیل"
+      "emailTemplatesDesc": "مدیریت قالب‌های اعلان ایمیل",
+      "paymentMethodsDesc": "تنظیم و ترتیب روش‌های پرداخت"
     },
     "emailTemplates": {
       "title": "قالب‌های ایمیل",
@@ -638,6 +640,40 @@
       "enable": "فعال",
       "disable": "غیرفعال",
       "toggleTrial": "تغییر آزمایشی"
+    },
+    "paymentMethods": {
+      "title": "روش‌های پرداخت",
+      "description": "تنظیم ترتیب نمایش و شرایط",
+      "enabled": "فعال",
+      "disabled": "غیرفعال",
+      "notConfigured": "تنظیم نشده",
+      "dragToReorder": "بکشید برای تغییر ترتیب",
+      "dragHint": "کارت‌ها را بکشید تا ترتیب تغییر کند. برای تنظیم کلیک کنید.",
+      "saveOrder": "ذخیره ترتیب",
+      "orderSaved": "ترتیب ذخیره شد",
+      "saved": "تنظیمات ذخیره شد",
+      "noMethods": "روش پرداختی تنظیم نشده",
+      "methodEnabled": "روش فعال شد",
+      "providerNotConfigured": "ارائه‌دهنده در env تنظیم نشده",
+      "displayName": "نام نمایشی",
+      "displayNameHint": "برای نام پیش‌فرض خالی بگذارید",
+      "subOptions": "گزینه‌های پرداخت",
+      "minAmount": "حداقل مبلغ (کوپک)",
+      "maxAmount": "حداکثر مبلغ (کوپک)",
+      "conditions": "شرایط نمایش",
+      "userTypeFilter": "نوع کاربر",
+      "userTypeAll": "همه",
+      "userTypeTelegram": "تلگرام",
+      "userTypeEmail": "ایمیل",
+      "firstTopupFilter": "اولین شارژ",
+      "firstTopupAny": "هر کدام",
+      "firstTopupYes": "انجام شده",
+      "firstTopupNo": "انجام نشده",
+      "promoGroupFilter": "گروه‌های تبلیغاتی",
+      "promoGroupAll": "همه گروه‌ها",
+      "promoGroupSelected": "انتخاب شده",
+      "promoGroupsShort": "گروه",
+      "noPromoGroups": "گروه تبلیغاتی نیست"
     }
   },
   "adminDashboard": {
