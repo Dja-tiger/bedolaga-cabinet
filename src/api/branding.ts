@@ -19,6 +19,12 @@ export interface EmailAuthEnabled {
   enabled: boolean
 }
 
+export interface AnalyticsCounters {
+  yandex_metrika_id: string
+  google_ads_id: string
+  google_ads_label: string
+}
+
 const BRANDING_CACHE_KEY = 'cabinet_branding'
 const LOGO_PRELOADED_KEY = 'cabinet_logo_preloaded'
 
@@ -176,6 +182,22 @@ export const brandingApi = {
   // Update email auth enabled (admin only)
   updateEmailAuthEnabled: async (enabled: boolean): Promise<EmailAuthEnabled> => {
     const response = await apiClient.patch<EmailAuthEnabled>('/cabinet/branding/email-auth', { enabled })
+    return response.data
+  },
+
+  // Get analytics counters (public, no auth required)
+  getAnalyticsCounters: async (): Promise<AnalyticsCounters> => {
+    try {
+      const response = await apiClient.get<AnalyticsCounters>('/cabinet/branding/analytics')
+      return response.data
+    } catch {
+      return { yandex_metrika_id: '', google_ads_id: '', google_ads_label: '' }
+    }
+  },
+
+  // Update analytics counters (admin only)
+  updateAnalyticsCounters: async (data: Partial<AnalyticsCounters>): Promise<AnalyticsCounters> => {
+    const response = await apiClient.patch<AnalyticsCounters>('/cabinet/branding/analytics', data)
     return response.data
   },
 }
