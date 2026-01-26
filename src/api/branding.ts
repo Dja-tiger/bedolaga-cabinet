@@ -15,6 +15,10 @@ export interface FullscreenEnabled {
   enabled: boolean
 }
 
+export interface EmailAuthEnabled {
+  enabled: boolean
+}
+
 const BRANDING_CACHE_KEY = 'cabinet_branding'
 const LOGO_PRELOADED_KEY = 'cabinet_logo_preloaded'
 
@@ -155,6 +159,23 @@ export const brandingApi = {
   // Update fullscreen enabled (admin only)
   updateFullscreenEnabled: async (enabled: boolean): Promise<FullscreenEnabled> => {
     const response = await apiClient.patch<FullscreenEnabled>('/cabinet/branding/fullscreen', { enabled })
+    return response.data
+  },
+
+  // Get email auth enabled (public, no auth required)
+  getEmailAuthEnabled: async (): Promise<EmailAuthEnabled> => {
+    try {
+      const response = await apiClient.get<EmailAuthEnabled>('/cabinet/branding/email-auth')
+      return response.data
+    } catch {
+      // If endpoint doesn't exist, default to enabled
+      return { enabled: true }
+    }
+  },
+
+  // Update email auth enabled (admin only)
+  updateEmailAuthEnabled: async (enabled: boolean): Promise<EmailAuthEnabled> => {
+    const response = await apiClient.patch<EmailAuthEnabled>('/cabinet/branding/email-auth', { enabled })
     return response.data
   },
 }

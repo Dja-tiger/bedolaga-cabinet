@@ -68,11 +68,10 @@ export default function Referral() {
 		queryFn: referralApi.getReferralInfo,
 	})
 
-	// Build referral link using frontend env variable for correct bot username
-	const botUsername = import.meta.env.VITE_TELEGRAM_BOT_USERNAME
-	const referralLink = info?.referral_code && botUsername
-		? `https://t.me/${botUsername}?start=${info.referral_code}`
-		: info?.referral_link || ''
+	// Build referral link for cabinet registration
+	const referralLink = info?.referral_code
+		? `${window.location.origin}/login?ref=${info.referral_code}`
+		: ''
 
 	const { data: terms } = useQuery({
 		queryKey: ['referral-terms'],

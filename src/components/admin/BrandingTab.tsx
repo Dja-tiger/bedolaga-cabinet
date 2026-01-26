@@ -35,6 +35,11 @@ export function BrandingTab({ accentColor = '#3b82f6' }: BrandingTabProps) {
     queryFn: brandingApi.getFullscreenEnabled,
   })
 
+  const { data: emailAuthSettings } = useQuery({
+    queryKey: ['email-auth-enabled'],
+    queryFn: brandingApi.getEmailAuthEnabled,
+  })
+
   // Mutations
   const updateBrandingMutation = useMutation({
     mutationFn: brandingApi.updateName,
@@ -74,6 +79,13 @@ export function BrandingTab({ accentColor = '#3b82f6' }: BrandingTabProps) {
     onSuccess: (data) => {
       setCachedFullscreenEnabled(data.enabled)
       queryClient.invalidateQueries({ queryKey: ['fullscreen-enabled'] })
+    },
+  })
+
+  const updateEmailAuthMutation = useMutation({
+    mutationFn: (enabled: boolean) => brandingApi.updateEmailAuthEnabled(enabled),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['email-auth-enabled'] })
     },
   })
 
@@ -203,6 +215,18 @@ export function BrandingTab({ accentColor = '#3b82f6' }: BrandingTabProps) {
               checked={fullscreenSettings?.enabled ?? false}
               onChange={() => updateFullscreenMutation.mutate(!(fullscreenSettings?.enabled ?? false))}
               disabled={updateFullscreenMutation.isPending}
+            />
+          </div>
+
+          <div className="flex items-center justify-between p-4 rounded-xl bg-dark-700/30">
+            <div>
+              <span className="font-medium text-dark-100">{t('admin.settings.emailAuth')}</span>
+              <p className="text-sm text-dark-400">{t('admin.settings.emailAuthDesc')}</p>
+            </div>
+            <Toggle
+              checked={emailAuthSettings?.enabled ?? true}
+              onChange={() => updateEmailAuthMutation.mutate(!(emailAuthSettings?.enabled ?? true))}
+              disabled={updateEmailAuthMutation.isPending}
             />
           </div>
         </div>

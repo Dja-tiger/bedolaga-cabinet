@@ -74,7 +74,13 @@
     "tryAgain": "重试",
     "welcomeBack": "欢迎回来！",
     "loginTitle": "登录个人中心",
-    "loginSubtitle": "通过Telegram或邮箱登录"
+    "loginSubtitle": "通过Telegram或邮箱登录",
+    "referralInvite": "您已通过推荐链接受邀！",
+    "checkEmail": "请查收邮件",
+    "verificationSent": "我们已发送验证链接至：",
+    "clickLinkToVerify": "点击邮件中的链接验证账户并登录。",
+    "backToLogin": "返回登录",
+    "emailNotVerified": "请先验证邮箱"
   },
   "emailVerification": {
     "title": "邮箱验证",
@@ -82,6 +88,7 @@
     "pleaseWait": "请稍候，我们正在验证您的邮箱。",
     "success": "邮箱已验证！",
     "successMessage": "您的邮箱已成功验证。现在您可以使用邮箱和密码登录。",
+    "redirecting": "正在跳转到个人中心...",
     "failed": "验证失败",
     "goToLogin": "前往登录"
   },
@@ -670,6 +677,7 @@
     "linkEmailDescription": "绑定邮箱以便无需Telegram登录。绑定后将收到验证邮件。",
     "linkEmail": "绑定邮箱",
     "emailRequired": "请输入邮箱",
+    "invalidEmail": "请输入有效的电子邮件地址",
     "passwordMinLength": "密码至少8个字符",
     "passwordsMismatch": "密码不匹配",
     "passwordPlaceholder": "输入密码",
@@ -682,6 +690,8 @@
     "resendVerification": "重新发送验证邮件",
     "verificationResent": "验证邮件已重新发送！",
     "canLoginWithEmail": "现在您可以使用邮箱和密码登录。",
+    "emailAlreadyRegistered": "此邮箱已绑定到其他账户。如果这是您的邮箱，请使用邮箱登录或联系客服。",
+    "alreadyHaveEmail": "您已经绑定了已验证的邮箱。",
     "notifications": {
       "title": "通知设置",
       "subscriptionExpiry": "订阅到期",

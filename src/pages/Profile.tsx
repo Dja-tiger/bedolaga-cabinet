@@ -1,9 +1,38 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../store/auth'
 import { authApi } from '../api/auth'
 import { notificationsApi, NotificationSettings, NotificationSettingsUpdate } from '../api/notifications'
+import { referralApi } from '../api/referral'
+import { brandingApi, type EmailAuthEnabled } from '../api/branding'
+
+// Icons
+const CopyIcon = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" />
+  </svg>
+)
+
+const CheckIcon = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+  </svg>
+)
+
+const ShareIcon = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M7 8l5-5m0 0l5 5m-5-5v12" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M4 15v3a2 2 0 002 2h12a2 2 0 002-2v-3" />
+  </svg>
+)
+
+const ArrowRightIcon = () => (
+  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+  </svg>
+)
 
 export default function Profile() {
   const { t } = useTranslation()
@@ -15,6 +44,65 @@ export default function Profile() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+
+  // Referral data
+  const { data: referralInfo } = useQuery({
+    queryKey: ['referral-info'],
+    queryFn: referralApi.getReferralInfo,
+  })
+
+  const { data: referralTerms } = useQuery({
+    queryKey: ['referral-terms'],
+    queryFn: referralApi.getReferralTerms,
+  })
+
+  const { data: branding } = useQuery({
+    queryKey: ['branding'],
+    queryFn: brandingApi.getBranding,
+    staleTime: 60000,
+  })
+
+  // Check if email auth is enabled
+  const { data: emailAuthConfig } = useQuery<EmailAuthEnabled>({
+    queryKey: ['email-auth-enabled'],
+    queryFn: brandingApi.getEmailAuthEnabled,
+    staleTime: 60000,
+  })
+  const isEmailAuthEnabled = emailAuthConfig?.enabled ?? true
+
+  // Build referral link for cabinet
+  const referralLink = referralInfo?.referral_code
+    ? `${window.location.origin}/login?ref=${referralInfo.referral_code}`
+    : ''
+
+  const copyReferralLink = () => {
+    if (referralLink) {
+      navigator.clipboard.writeText(referralLink)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const shareReferralLink = () => {
+    if (!referralLink) return
+    const shareText = t('referral.shareMessage', {
+      percent: referralInfo?.commission_percent || 0,
+      botName: branding?.name || import.meta.env.VITE_APP_NAME || 'Cabinet',
+    })
+
+    if (navigator.share) {
+      navigator.share({
+        title: t('referral.title'),
+        text: shareText,
+        url: referralLink,
+      }).catch(() => {})
+      return
+    }
+
+    const telegramUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(shareText)}`
+    window.open(telegramUrl, '_blank', 'noopener,noreferrer')
+  }
 
   const registerEmailMutation = useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) =>
@@ -30,7 +118,14 @@ export default function Profile() {
       queryClient.invalidateQueries({ queryKey: ['user'] })
     },
     onError: (err: { response?: { data?: { detail?: string } } }) => {
-      setError(err.response?.data?.detail || t('common.error'))
+      const detail = err.response?.data?.detail
+      if (detail?.includes('already registered')) {
+        setError(t('profile.emailAlreadyRegistered'))
+      } else if (detail?.includes('already have a verified email')) {
+        setError(t('profile.alreadyHaveEmail'))
+      } else {
+        setError(detail || t('common.error'))
+      }
       setSuccess(null)
     },
   })
@@ -74,8 +169,10 @@ export default function Profile() {
     setError(null)
     setSuccess(null)
 
-    if (!email.trim()) {
-      setError(t('profile.emailRequired'))
+    // Валидация email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!email.trim() || !emailRegex.test(email.trim())) {
+      setError(t('profile.invalidEmail', 'Please enter a valid email address'))
       return
     }
 
@@ -125,7 +222,52 @@ export default function Profile() {
         </div>
       </div>
 
-      {/* Email Section */}
+      {/* Referral Link Widget */}
+      {referralTerms?.is_enabled && referralLink && (
+        <div className="bento-card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-dark-100">{t('referral.yourLink')}</h2>
+            <Link to="/referral" className="text-accent-400 hover:text-accent-300 transition-colors flex items-center gap-1">
+              <span className="text-sm">{t('referral.title')}</span>
+              <ArrowRightIcon />
+            </Link>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex-1">
+              <input
+                type="text"
+                readOnly
+                value={referralLink}
+                className="input w-full text-sm"
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={copyReferralLink}
+                className={`btn-primary px-4 py-2 flex items-center gap-2 text-sm ${
+                  copied ? 'bg-success-500 hover:bg-success-500' : ''
+                }`}
+              >
+                {copied ? <CheckIcon /> : <CopyIcon />}
+                <span>{copied ? t('referral.copied') : t('referral.copyLink')}</span>
+              </button>
+              <button
+                onClick={shareReferralLink}
+                className="btn-secondary px-4 py-2 flex items-center gap-2 text-sm"
+              >
+                <ShareIcon />
+                <span className="hidden sm:inline">{t('referral.shareButton')}</span>
+              </button>
+            </div>
+          </div>
+          <p className="mt-3 text-sm text-dark-500">
+            {t('referral.shareHint', { percent: referralInfo?.commission_percent || 0 })}
+          </p>
+        </div>
+      )}
+
+      {/* Email Section - only show when email auth is enabled */}
+      {isEmailAuthEnabled && (
       <div className="bento-card">
         <h2 className="text-lg font-semibold text-dark-100 mb-6">{t('profile.emailAuth')}</h2>
 
@@ -248,6 +390,7 @@ export default function Profile() {
           </div>
         )}
       </div>
+      )}
 
       {/* Notification Settings */}
       <div className="bento-card">

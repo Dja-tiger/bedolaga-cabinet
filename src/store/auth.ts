@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { User } from '../types'
+import type { RegisterResponse, User } from '../types'
 import { authApi } from '../api/auth'
 import { apiClient } from '../api/client'
 import { tokenStorage, isTokenValid, tokenRefreshManager } from '../utils/token'
@@ -33,6 +33,7 @@ interface AuthState {
   loginWithTelegram: (initData: string) => Promise<void>
   loginWithTelegramWidget: (data: TelegramWidgetData) => Promise<void>
   loginWithEmail: (email: string, password: string) => Promise<void>
+  registerWithEmail: (email: string, password: string, firstName?: string, referralCode?: string) => Promise<RegisterResponse>
 }
 
 // Блокировка для предотвращения race condition при инициализации
@@ -259,6 +260,19 @@ export const useAuthStore = create<AuthState>()(
           isAuthenticated: true,
         })
         get().checkAdminStatus()
+      },
+
+      registerWithEmail: async (email, password, firstName, referralCode) => {
+        // Registration now returns message, not tokens
+        // User must verify email before they can login
+        const response = await authApi.registerEmailStandalone({
+          email,
+          password,
+          first_name: firstName,
+          language: navigator.language.split('-')[0] || 'ru',
+          referral_code: referralCode,
+        })
+        return response
       },
     }),
     {
