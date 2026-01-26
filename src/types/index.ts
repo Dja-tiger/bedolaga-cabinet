@@ -556,3 +556,35 @@ export interface TicketSettings {
   cabinet_user_notifications_enabled: boolean
   cabinet_admin_notifications_enabled: boolean
 }
+
+// Payment method config types (admin)
+export interface PaymentMethodSubOptionInfo {
+  id: string
+  name: string
+}
+
+export interface PaymentMethodConfig {
+  method_id: string
+  sort_order: number
+  is_enabled: boolean
+  display_name: string | null
+  default_display_name: string
+  sub_options: Record<string, boolean> | null
+  available_sub_options: PaymentMethodSubOptionInfo[] | null
+  min_amount_kopeks: number | null
+  max_amount_kopeks: number | null
+  default_min_amount_kopeks: number
+  default_max_amount_kopeks: number
+  user_type_filter: 'all' | 'telegram' | 'email'
+  first_topup_filter: 'any' | 'yes' | 'no'
+  promo_group_filter_mode: 'all' | 'selected'
+  allowed_promo_group_ids: number[]
+  is_provider_configured: boolean
+  created_at: string | null
+  updated_at: string | null
+}
+
+export interface PromoGroupSimple {
+  id: number
+  name: string
+}
