@@ -148,7 +148,6 @@
     "extraDevicesIncluded": "含 {{count}} 个额外设备",
     "extraDevicesIncluded_other": "含 {{count}} 个额外设备",
     "baseTariff": "套餐",
-    "servers": "服务器",
     "serversLabel": "服务器",
     "servers_other": "{{count}} 个服务器",
     "traffic": "流量",

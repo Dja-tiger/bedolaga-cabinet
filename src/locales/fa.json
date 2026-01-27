@@ -148,7 +148,6 @@
     "extraDevicesIncluded": "شامل {{count}} دستگاه اضافی",
     "extraDevicesIncluded_other": "شامل {{count}} دستگاه اضافی",
     "baseTariff": "تعرفه",
-    "servers": "سرورها",
     "serversLabel": "سرورها",
     "servers_other": "{{count}} سرور",
     "traffic": "ترافیک",

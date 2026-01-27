@@ -151,7 +151,6 @@
     "devices": "Devices",
     "devices_one": "{{count}} device",
     "devices_other": "{{count}} devices",
-    "servers": "Servers",
     "serversLabel": "Servers",
     "servers_one": "{{count}} server",
     "servers_other": "{{count}} servers",

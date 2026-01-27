@@ -165,7 +165,6 @@
     "devices_one": "{{count}} устройство",
     "devices_few": "{{count}} устройства",
     "devices_many": "{{count}} устройств",
-    "servers": "Серверы",
     "serversLabel": "Серверы",
     "servers_one": "{{count}} сервер",
     "servers_few": "{{count}} сервера",
