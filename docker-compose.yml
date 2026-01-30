@@ -1,14 +1,9 @@
-# Docker Compose для локальной разработки/тестирования
-# Для production используйте готовые образы или настройте Caddy/Nginx
-# См. README.md раздел "Настройка прокси для production"
-
 services:
   cabinet-frontend:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        # API URL - use /api for same-server deployment or full URL for external backend
         VITE_API_URL: ${VITE_API_URL:-/api}
         VITE_TELEGRAM_BOT_USERNAME: ${VITE_TELEGRAM_BOT_USERNAME}
         VITE_APP_NAME: ${VITE_APP_NAME:-Cabinet}
@@ -16,22 +11,17 @@ services:
     container_name: cabinet_frontend
     restart: unless-stopped
     env_file:
-      - .env # Загрузить переменные из .env файла
-    ports:
-      # Маппинг: <хост-порт>:<контейнер-порт>
-      # Внутри контейнера nginx слушает на порту 80
-      - '${CABINET_PORT:-3020}:80'
+      - .env
+    networks:
+      - bot_network
     healthcheck:
-      test:
-        [
-          'CMD',
-          'wget',
-          '--no-verbose',
-          '--tries=1',
-          '--spider',
-          'http://localhost:80/',
-        ]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
       interval: 30s
       timeout: 3s
       retries: 3
       start_period: 10s
+
+networks:
+  bot_network:
+    external: true
+    name: remnawave-bedolaga-telegram-bot_bot_network
