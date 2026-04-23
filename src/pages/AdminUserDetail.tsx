@@ -352,7 +352,6 @@ export default function AdminUserDetail() {
   const [subDays, setSubDays] = useState<number | ''>(30);
   const [selectedTariffId, setSelectedTariffId] = useState<number | null>(null);
   const [activeSubscriptionId, setActiveSubscriptionId] = useState<number | null>(null);
-  const hasAutoSelectedSub = useRef(false);
   const [subscriptionDetailView, setSubscriptionDetailView] = useState(false);
 
   // Promo group
@@ -384,6 +383,24 @@ export default function AdminUserDetail() {
   const [giftsLoading, setGiftsLoading] = useState(false);
 
   const userId = id ? parseInt(id, 10) : null;
+  const userSubscriptions = useMemo(() => {
+    if (user?.subscriptions?.length) {
+      return user.subscriptions;
+    }
+
+    return user?.subscription ? [user.subscription] : [];
+  }, [user?.subscription, user?.subscriptions]);
+
+  const selectedSub =
+    userSubscriptions.find((subscription) => subscription.id === activeSubscriptionId) ??
+    userSubscriptions.find((subscription) => subscription.is_active) ??
+    userSubscriptions[0] ??
+    user?.subscription ??
+    null;
+
+  const selectedSubscriptionId = selectedSub?.id;
+  const selectedSubDeviceLimit = selectedSub?.device_limit;
+  const currentTariff = tariffs.find((tariff) => tariff.id === selectedSub?.tariff_id) || null;
 
   const loadUser = useCallback(async () => {
     if (!userId) return;
@@ -402,12 +419,12 @@ export default function AdminUserDetail() {
   const loadSyncStatus = useCallback(async () => {
     if (!userId) return;
     try {
-      const data = await adminUsersApi.getSyncStatus(userId, activeSubscriptionId ?? undefined);
+      const data = await adminUsersApi.getSyncStatus(userId, selectedSubscriptionId);
       setSyncStatus(data);
     } catch (error) {
       console.error('Failed to load sync status:', error);
     }
-  }, [userId, activeSubscriptionId]);
+  }, [userId, selectedSubscriptionId]);
 
   const loadTariffs = useCallback(async () => {
     if (!userId) return;
@@ -475,35 +492,35 @@ export default function AdminUserDetail() {
     if (!userId) return;
     try {
       setPanelInfoLoading(true);
-      const data = await adminUsersApi.getPanelInfo(userId, activeSubscriptionId ?? undefined);
+      const data = await adminUsersApi.getPanelInfo(userId, selectedSubscriptionId);
       setPanelInfo(data);
     } catch {
     } finally {
       setPanelInfoLoading(false);
     }
-  }, [userId, activeSubscriptionId]);
+  }, [userId, selectedSubscriptionId]);
 
   const loadNodeUsage = useCallback(async () => {
     if (!userId) return;
     try {
-      const data = await adminUsersApi.getNodeUsage(userId, activeSubscriptionId ?? undefined);
+      const data = await adminUsersApi.getNodeUsage(userId, selectedSubscriptionId);
       setNodeUsage(data);
     } catch {}
-  }, [userId, activeSubscriptionId]);
+  }, [userId, selectedSubscriptionId]);
 
   const loadDevices = useCallback(async () => {
     if (!userId) return;
     try {
       setDevicesLoading(true);
-      const data = await adminUsersApi.getUserDevices(userId, activeSubscriptionId ?? undefined);
+      const data = await adminUsersApi.getUserDevices(userId, selectedSubscriptionId);
       setDevices(data.devices);
       setDevicesTotal(data.total);
-      setDeviceLimit(data.device_limit);
+      setDeviceLimit(selectedSubDeviceLimit ?? data.device_limit);
     } catch {
     } finally {
       setDevicesLoading(false);
     }
-  }, [userId, activeSubscriptionId]);
+  }, [selectedSubDeviceLimit, selectedSubscriptionId, userId]);
 
   const loadSubscriptionData = useCallback(async () => {
     await Promise.all([loadPanelInfo(), loadNodeUsage(), loadDevices()]);
@@ -578,6 +595,32 @@ export default function AdminUserDetail() {
   }, [userId, loadUser, navigate]);
 
   useEffect(() => {
+    if (userSubscriptions.length === 0) {
+      if (activeSubscriptionId !== null) {
+        setActiveSubscriptionId(null);
+      }
+      return;
+    }
+
+    if (
+      activeSubscriptionId &&
+      userSubscriptions.some((subscription) => subscription.id === activeSubscriptionId)
+    ) {
+      return;
+    }
+
+    const fallbackSubscription =
+      userSubscriptions.find((subscription) => subscription.is_active) ?? userSubscriptions[0];
+    setActiveSubscriptionId(fallbackSubscription.id);
+  }, [activeSubscriptionId, userSubscriptions]);
+
+  useEffect(() => {
+    if (selectedSubDeviceLimit != null) {
+      setDeviceLimit(selectedSubDeviceLimit);
+    }
+  }, [selectedSubDeviceLimit]);
+
+  useEffect(() => {
     if (activeTab === 'info') {
       loadReferrals();
       if (hasPermission('users:promo_group')) loadPromoGroups();
@@ -629,6 +672,7 @@ export default function AdminUserDetail() {
   const handleUpdateSubscription = async (overrideAction?: string) => {
     if (!userId) return;
     const action = overrideAction || subAction;
+    if (action !== 'create' && !selectedSubscriptionId) return;
     if ((action === 'extend' || action === 'shorten') && toNumber(subDays, 0) <= 0) {
       notify.error(t('admin.users.detail.subscription.invalidDays'));
       return;
@@ -637,8 +681,8 @@ export default function AdminUserDetail() {
     try {
       const data: UpdateSubscriptionRequest = {
         action: action as UpdateSubscriptionRequest['action'],
-        ...(activeSubscriptionId && action !== 'create'
-          ? { subscription_id: activeSubscriptionId }
+        ...(selectedSubscriptionId && action !== 'create'
+          ? { subscription_id: selectedSubscriptionId }
           : {}),
         ...(action === 'extend' || action === 'shorten' ? { days: toNumber(subDays, 30) } : {}),
         ...(action === 'change_tariff' && selectedTariffId ? { tariff_id: selectedTariffId } : {}),
@@ -694,7 +738,7 @@ export default function AdminUserDetail() {
           update_subscription: true,
           update_traffic: true,
         },
-        activeSubscriptionId ?? undefined,
+        selectedSubscriptionId,
       );
       await loadUser();
       await loadSyncStatus();
@@ -709,11 +753,7 @@ export default function AdminUserDetail() {
     if (!userId) return;
     setActionLoading(true);
     try {
-      await adminUsersApi.syncToPanel(
-        userId,
-        { create_if_missing: true },
-        activeSubscriptionId ?? undefined,
-      );
+      await adminUsersApi.syncToPanel(userId, { create_if_missing: true }, selectedSubscriptionId);
       await loadUser();
       await loadSyncStatus();
     } catch (error) {
@@ -739,7 +779,7 @@ export default function AdminUserDetail() {
     if (!userId) return;
     setActionLoading(true);
     try {
-      await adminUsersApi.deleteUserDevice(userId, hwid, activeSubscriptionId ?? undefined);
+      await adminUsersApi.deleteUserDevice(userId, hwid, selectedSubscriptionId);
       notify.success(t('admin.users.detail.devices.deleted'));
       await loadDevices();
     } catch {
@@ -753,7 +793,7 @@ export default function AdminUserDetail() {
     if (!userId) return;
     setActionLoading(true);
     try {
-      await adminUsersApi.resetUserDevices(userId, activeSubscriptionId ?? undefined);
+      await adminUsersApi.resetUserDevices(userId, selectedSubscriptionId);
       notify.success(t('admin.users.detail.devices.allDeleted'));
       await loadDevices();
     } catch {
@@ -764,13 +804,13 @@ export default function AdminUserDetail() {
   };
 
   const handleAddTraffic = async (gb: number) => {
-    if (!userId) return;
+    if (!userId || !selectedSubscriptionId) return;
     setActionLoading(true);
     try {
       await adminUsersApi.updateSubscription(userId, {
         action: 'add_traffic',
         traffic_gb: gb,
-        ...(activeSubscriptionId ? { subscription_id: activeSubscriptionId } : {}),
+        subscription_id: selectedSubscriptionId,
       });
       notify.success(t('admin.users.detail.subscription.trafficAdded'));
       setSelectedTrafficGb('');
@@ -783,13 +823,13 @@ export default function AdminUserDetail() {
   };
 
   const handleRemoveTraffic = async (purchaseId: number) => {
-    if (!userId) return;
+    if (!userId || !selectedSubscriptionId) return;
     setActionLoading(true);
     try {
       await adminUsersApi.updateSubscription(userId, {
         action: 'remove_traffic',
         traffic_purchase_id: purchaseId,
-        ...(activeSubscriptionId ? { subscription_id: activeSubscriptionId } : {}),
+        subscription_id: selectedSubscriptionId,
       });
       notify.success(t('admin.users.detail.subscription.trafficRemoved'));
       await loadUser();
@@ -801,13 +841,13 @@ export default function AdminUserDetail() {
   };
 
   const handleSetDeviceLimit = async (newLimit: number) => {
-    if (!userId) return;
+    if (!userId || !selectedSubscriptionId) return;
     setActionLoading(true);
     try {
       await adminUsersApi.updateSubscription(userId, {
         action: 'set_device_limit',
         device_limit: newLimit,
-        ...(activeSubscriptionId ? { subscription_id: activeSubscriptionId } : {}),
+        subscription_id: selectedSubscriptionId,
       });
       notify.success(t('admin.users.detail.subscription.deviceLimitUpdated'));
       await loadUser();
@@ -817,22 +857,6 @@ export default function AdminUserDetail() {
       setActionLoading(false);
     }
   };
-
-  // Multi-subscription: pick active subscription or first from list
-  const userSubscriptions = useMemo(() => user?.subscriptions ?? [], [user?.subscriptions]);
-  const selectedSub =
-    userSubscriptions.find((s) => s.id === activeSubscriptionId) ?? user?.subscription ?? null;
-
-  // Auto-select first subscription when user loads (one-time init)
-  useEffect(() => {
-    if (user && userSubscriptions.length > 0 && !hasAutoSelectedSub.current) {
-      const activeSub = userSubscriptions.find((s) => s.is_active) ?? userSubscriptions[0];
-      setActiveSubscriptionId(activeSub.id);
-      hasAutoSelectedSub.current = true;
-    }
-  }, [user, userSubscriptions]);
-
-  const currentTariff = tariffs.find((t) => t.id === selectedSub?.tariff_id) || null;
 
   const handleChangePromoGroup = async (groupId: number | null) => {
     if (!userId) return;
@@ -2540,6 +2564,14 @@ export default function AdminUserDetail() {
               <div
                 className={`rounded-xl border p-4 ${syncStatus.has_differences ? 'border-warning-500/30 bg-warning-500/10' : 'border-success-500/30 bg-success-500/10'}`}
               >
+                {(syncStatus.subscription_id || syncStatus.subscription_tariff_name) && (
+                  <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-dark-400">
+                    {syncStatus.subscription_id && <span>ID: {syncStatus.subscription_id}</span>}
+                    {syncStatus.subscription_tariff_name && (
+                      <span>{syncStatus.subscription_tariff_name}</span>
+                    )}
+                  </div>
+                )}
                 <div className="mb-3 flex items-center gap-2">
                   {syncStatus.has_differences ? (
                     <span className="font-medium text-warning-400">
@@ -2657,11 +2689,6 @@ export default function AdminUserDetail() {
 
             {/* UUID info */}
             <div className="rounded-xl bg-dark-800/50 p-4">
-              {syncStatus?.subscription_tariff_name && (
-                <div className="mb-2 text-xs text-dark-500">
-                  {syncStatus.subscription_tariff_name}
-                </div>
-              )}
               <div className="mb-1 text-sm text-dark-400">Remnawave UUID</div>
               <div className="break-all font-mono text-sm text-dark-100">
                 {syncStatus?.remnawave_uuid ||

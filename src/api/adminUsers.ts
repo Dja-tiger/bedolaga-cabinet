@@ -383,6 +383,27 @@ export interface AdminUserGiftsResponse {
   received_total: number;
 }
 
+function normalizeUserDetailResponse(data: UserDetailResponse): UserDetailResponse {
+  const subscriptions =
+    Array.isArray(data.subscriptions) && data.subscriptions.length > 0
+      ? data.subscriptions
+      : data.subscription
+        ? [data.subscription]
+        : [];
+
+  const primarySubscription =
+    data.subscription ??
+    subscriptions.find((subscription) => subscription.is_active) ??
+    subscriptions[0] ??
+    null;
+
+  return {
+    ...data,
+    subscription: primarySubscription,
+    subscriptions,
+  };
+}
+
 export const adminUsersApi = {
   // List users
   getUsers: async (
@@ -414,13 +435,13 @@ export const adminUsersApi = {
   // Get user detail
   getUser: async (userId: number): Promise<UserDetailResponse> => {
     const response = await apiClient.get(`/cabinet/admin/users/${userId}`);
-    return response.data;
+    return normalizeUserDetailResponse(response.data);
   },
 
   // Get user by telegram ID
   getUserByTelegram: async (telegramId: number): Promise<UserDetailResponse> => {
     const response = await apiClient.get(`/cabinet/admin/users/by-telegram/${telegramId}`);
-    return response.data;
+    return normalizeUserDetailResponse(response.data);
   },
 
   // Get available tariffs for user
