@@ -986,7 +986,7 @@ function App() {
         <Route
           path="/admin/bulk-actions"
           element={
-            <PermissionRoute permission="users:read">
+            <PermissionRoute permission="bulk_actions:read">
               <LazyPage>
                 <AdminBulkActions />
               </LazyPage>
@@ -1311,7 +1311,7 @@ function App() {
         <Route
           path="/admin/info-pages"
           element={
-            <PermissionRoute permission="settings:read">
+            <PermissionRoute permission="info_pages:read">
               <LazyPage>
                 <AdminInfoPages />
               </LazyPage>
@@ -1321,7 +1321,7 @@ function App() {
         <Route
           path="/admin/info-pages/create"
           element={
-            <PermissionRoute permission="settings:edit">
+            <PermissionRoute permission="info_pages:edit">
               <LazyPage>
                 <AdminInfoPageEditor />
               </LazyPage>
@@ -1331,7 +1331,7 @@ function App() {
         <Route
           path="/admin/info-pages/:id/edit"
           element={
-            <PermissionRoute permission="settings:edit">
+            <PermissionRoute permission="info_pages:edit">
               <LazyPage>
                 <AdminInfoPageEditor />
               </LazyPage>
