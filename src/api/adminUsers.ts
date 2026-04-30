@@ -38,6 +38,7 @@ export interface UserListItemSubscription {
   tariff_id: number | null;
   tariff_name: string | null;
   status: string;
+  is_trial: boolean;
   end_date: string | null;
   days_remaining: number;
   traffic_used_gb: number;
@@ -156,6 +157,19 @@ export interface UserPanelInfo {
   online_at: string | null;
   last_connected_node_uuid: string | null;
   last_connected_node_name: string | null;
+}
+
+export interface SubscriptionRequestRecord {
+  id: number;
+  userUuid: string;
+  requestAt: string;
+  requestIp: string | null;
+  userAgent: string | null;
+}
+
+export interface SubscriptionRequestHistory {
+  total: number;
+  records: SubscriptionRequestRecord[];
 }
 
 export interface UserNodeUsageItem {
@@ -681,6 +695,22 @@ export const adminUsersApi = {
     const response = await apiClient.get(`/cabinet/admin/users/${userId}/node-usage`, {
       params: subscriptionId != null ? { subscription_id: subscriptionId } : undefined,
     });
+    return response.data;
+  },
+
+  // Get subscription request history from RemnaWave panel
+  getSubscriptionRequestHistory: async (
+    userId: number,
+    subscriptionId?: number,
+    offset = 0,
+    limit = 20,
+  ): Promise<SubscriptionRequestHistory> => {
+    const params: Record<string, unknown> = { offset, limit };
+    if (subscriptionId != null) params.subscription_id = subscriptionId;
+    const response = await apiClient.get(
+      `/cabinet/admin/users/${userId}/subscription-request-history`,
+      { params },
+    );
     return response.data;
   },
 

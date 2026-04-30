@@ -2087,7 +2087,9 @@
         "telegramOidcEnabled": "OIDC Enabled",
         "telegramOidcClientId": "Client ID (Bot ID)",
         "telegramOidcClientSecret": "Client Secret"
-      }
+      },
+      "offlineConv": "Offline Conversions",
+      "apiKey": "API Key"
     },
     "bulkActions": {
       "title": "Bulk Actions",
@@ -2114,7 +2116,9 @@
       },
       "deleteSubscription": {
         "warning": "Selected subscriptions will be permanently deleted from the bot and RemnaWave panel!",
-        "hint": "Users will lose VPN access for deleted subscriptions. This action cannot be undone."
+        "hint": "Users will lose VPN access for deleted subscriptions. This action cannot be undone.",
+        "activePaidWarning": "{{count}} of {{total}} selected subscriptions are active paid",
+        "forceDeleteConfirm": "I confirm deletion of active paid subscriptions"
       },
       "deleteUser": {
         "warning": "Selected users will be permanently deleted from the bot! All their subscriptions, balance, and data will be lost!",
@@ -3141,6 +3145,20 @@
         "language": "Language",
         "registration": "Registration",
         "lastActivity": "Last activity",
+        "botActivity": "Bot activity",
+        "cabinetLastLogin": "Last cabinet login",
+        "vpnConnection": "VPN connection",
+        "lastConnection": "Last connection",
+        "firstConnection": "First connection",
+        "online": "Online",
+        "noVpnData": "No connection data available",
+        "requestHistory": "Subscription request history",
+        "requestHistoryTotal": "Total requests",
+        "requestAt": "Date",
+        "requestIp": "IP address",
+        "requestUserAgent": "Device",
+        "loadMore": "Show more",
+        "noRequests": "No requests",
         "totalSpent": "Total spent",
         "purchases": "Purchases",
         "campaign": "Advertising campaign",
@@ -3826,6 +3844,10 @@
       "discountOverridesHint": "Leave empty to use global discount",
       "discountPreview": "Preview",
       "discountActive": "Discount",
+      "background": "Animated background",
+      "analytics": "Analytics",
+      "viewGoal": "View goal",
+      "clickGoal": "Payment click goal",
       "statistics": "Statistics",
       "stats": {
         "title": "Landing Statistics",
@@ -3846,7 +3868,8 @@
         "successful": "Successful",
         "funnel": "Funnel",
         "loadError": "Failed to load statistics",
-        "noPurchases": "No purchases"
+        "noPurchases": "No purchases",
+        "paid": "paid"
       },
       "purchases": {
         "title": "Purchases",

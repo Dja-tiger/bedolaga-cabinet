@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.50.0](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet/compare/v1.49.0...v1.50.0) (2026-04-29)
+
+
+### Features
+
+* bulk delete subscription protection for active paid subs ([afffab1](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet/commit/afffab17d316bc7c37fde10cf6c125320b7828c6))
+* dedicated RBAC permissions for bulk actions, info pages, news ([ae55a18](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet/commit/ae55a18fc9217f98e5bcbd6edde0d14b38884a7a))
+* landing analytics goals, daily bar chart, referrer tracking, contact persistence ([020f4c9](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet/commit/020f4c95e271d3f582cb907e9aeeef0fe7cc2353))
+* multi-media attachments, linkify URLs, shared MessageMediaGrid ([6d3010b](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet/commit/6d3010b6212f41a484dd507535d1dafa28a9160b))
+* show VPN connection info and subscription request history on admin user detail ([e1d2f8c](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet/commit/e1d2f8cee403d895508f538ffbc6c9c528f92b05))
+* subscription selector in VPN connection block for multi-tariff ([bc37f31](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet/commit/bc37f31350d9865918a8340273fccd4d76d4342f))
+* Yandex Metrika CID tracking, offline conversions UI, sticky pay button ([8005968](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet/commit/80059681da8655daa4b79cf3451b87df661b9d1d))
+
+
+### Bug Fixes
+
+* remove stale cabinet_last_login field from user detail ([8fcdbbe](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet/commit/8fcdbbe53ef5de8392d752b3c05cb2e3ffadce3d))
+* restore cabinet_last_login in user detail (now shows real data) ([8044b66](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet/commit/8044b664c36aea080b7ab8a84ba55aa48578a17e))
+* switch component — replace motion with CSS transition-transform ([9b1e26d](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet/commit/9b1e26d4ec146fa1a1e37dde2e9212e4edc5668b))
+* user detail — separate request history sub selector, split mount effects ([853e1c9](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet/commit/853e1c9c8477c028a7046e1c83c3089b00847cb9))
+* validate counterId/conversionId before script injection (XSS prevention) ([a50bd39](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet/commit/a50bd39df2fbc1fa994249ad24f1a02eb3f4ad8a))
+
 ## [1.49.0](https://github.com/BEDOLAGA-DEV/bedolaga-cabinet/compare/v1.48.0...v1.49.0) (2026-04-24)
 
 
