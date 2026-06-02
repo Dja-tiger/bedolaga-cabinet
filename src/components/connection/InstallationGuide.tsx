@@ -11,6 +11,8 @@ import type {
 import { useTheme } from '@/hooks/useTheme';
 import { CardsBlock, TimelineBlock, AccordionBlock, MinimalBlock, BlockButtons } from './blocks';
 import type { BlockRendererProps } from './blocks';
+import TvQuickConnect from './TvQuickConnect';
+import { BackIcon, BookOpenIcon, ChevronIcon } from '@/components/icons';
 
 const platformOrder = ['ios', 'android', 'windows', 'macos', 'linux', 'androidTV', 'appleTV'];
 
@@ -31,12 +33,6 @@ const RENDERERS: Record<string, React.ComponentType<BlockRendererProps>> = {
   accordion: AccordionBlock,
   minimal: MinimalBlock,
 };
-
-const BackIcon = () => (
-  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-  </svg>
-);
 
 interface Props {
   appConfig: AppConfig;
@@ -145,6 +141,12 @@ export default function InstallationGuide({
     ],
   );
 
+  const selectedIsTv =
+    (activePlatformKey || availablePlatforms[0]) === 'androidTV' ||
+    (activePlatformKey || availablePlatforms[0]) === 'appleTV';
+  const userIsOnTv = detectedPlatform === 'androidTV' || detectedPlatform === 'appleTV';
+  const isTvPlatform = selectedIsTv && !userIsOnTv;
+
   const currentPlatformKey = activePlatformKey || availablePlatforms[0];
   const currentPlatformData = currentPlatformKey
     ? (appConfig.platforms[currentPlatformKey] as RemnawavePlatformData | undefined)
@@ -190,9 +192,10 @@ export default function InstallationGuide({
         {!isTelegramWebApp && (
           <button
             onClick={onGoBack}
+            aria-label={t('common.back', 'Back')}
             className="flex h-10 w-10 items-center justify-center rounded-xl border border-dark-700 bg-dark-800 transition-colors hover:border-dark-600"
           >
-            <BackIcon />
+            <BackIcon className="h-6 w-6" />
           </button>
         )}
         <h2 className="flex-1 text-lg font-bold text-dark-100">
@@ -201,6 +204,7 @@ export default function InstallationGuide({
         {appConfig.subscriptionUrl && onOpenQR && (
           <button
             onClick={() => onOpenQR()}
+            aria-label={t('subscription.connection.openQr', 'Open QR code')}
             className="flex h-10 w-10 items-center justify-center rounded-xl border border-dark-700 bg-dark-800 text-dark-200 transition-colors hover:border-dark-600"
           >
             <svg
@@ -255,15 +259,7 @@ export default function InstallationGuide({
               ))}
             </select>
             <div className="pointer-events-none absolute right-2.5 text-dark-400">
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 9l4-4 4 4M8 15l4 4 4-4" />
-              </svg>
+              <ChevronIcon className="h-4 w-4" />
             </div>
           </div>
         )}
@@ -289,7 +285,7 @@ export default function InstallationGuide({
                       : 'border border-dark-700/50 bg-dark-800/80 text-dark-200 hover:border-dark-600/50 hover:bg-dark-700/80'
                 }`}
               >
-                {app.featured && <span className="h-2 w-2 shrink-0 rounded-full bg-amber-400" />}
+                {app.featured && <span className="h-2 w-2 shrink-0 rounded-full bg-warning-400" />}
                 <span className="relative z-10 truncate">{app.name}</span>
                 {appIconSvg && (
                   <div
@@ -311,25 +307,37 @@ export default function InstallationGuide({
           rel="noopener noreferrer"
           className="btn-secondary w-full justify-center"
         >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.5}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
-            />
-          </svg>
+          <BookOpenIcon className="h-5 w-5" />
           {getBaseTranslation('tutorial', 'subscription.connection.tutorial')}
         </a>
       )}
 
-      {/* Blocks */}
-      {selectedApp && (
+      {/* Blocks — for TV: first block, Quick Connect, last block */}
+      {selectedApp && isTvPlatform && appConfig.subscriptionUrl ? (
+        <>
+          {selectedApp.blocks.length > 0 && (
+            <Renderer
+              blocks={selectedApp.blocks.slice(0, 1)}
+              isMobile={isMobile}
+              isLight={isLight}
+              getLocalizedText={getLocalizedText}
+              getSvgHtml={getSvgHtml}
+              renderBlockButtons={renderBlockButtons}
+            />
+          )}
+          <TvQuickConnect subscriptionUrl={appConfig.subscriptionUrl} isLight={isLight} />
+          {selectedApp.blocks.length > 1 && (
+            <Renderer
+              blocks={selectedApp.blocks.slice(-1)}
+              isMobile={isMobile}
+              isLight={isLight}
+              getLocalizedText={getLocalizedText}
+              getSvgHtml={getSvgHtml}
+              renderBlockButtons={renderBlockButtons}
+            />
+          )}
+        </>
+      ) : selectedApp ? (
         <Renderer
           blocks={selectedApp.blocks}
           isMobile={isMobile}
@@ -338,7 +346,7 @@ export default function InstallationGuide({
           getSvgHtml={getSvgHtml}
           renderBlockButtons={renderBlockButtons}
         />
-      )}
+      ) : null}
     </div>
   );
 }

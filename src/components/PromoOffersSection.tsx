@@ -3,8 +3,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router';
 import { promoApi, PromoOffer } from '../api/promo';
-import { ClockIcon, CheckIcon } from './icons';
-import { usePlatform } from '@/platform/hooks/usePlatform';
+import { ClockIcon, CheckIcon, XCircleIcon } from './icons';
+import { useDestructiveConfirm } from '@/platform/hooks/useNativeDialog';
 
 // Helper functions
 const formatTimeLeft = (
@@ -69,17 +69,6 @@ const getOfferDescription = (
   return t('promo.offers.activateDiscountHint');
 };
 
-// Icons for deactivation
-const XCircleIcon = () => (
-  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-    />
-  </svg>
-);
-
 interface PromoOffersSectionProps {
   className?: string;
 }
@@ -88,7 +77,7 @@ export default function PromoOffersSection({ className = '' }: PromoOffersSectio
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { dialog, capabilities } = usePlatform();
+  const confirmDeactivate = useDestructiveConfirm();
   const [claimingId, setClaimingId] = useState<number | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -160,36 +149,19 @@ export default function PromoOffersSection({ className = '' }: PromoOffersSectio
     navigate('/subscription/purchase');
   };
 
-  const handleDeactivateClick = () => {
+  const handleDeactivateClick = async () => {
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    if (capabilities.hasNativeDialogs) {
-      dialog
-        .popup({
-          title: t('promo.deactivate.confirmTitle'),
-          message: t('promo.deactivate.confirmDescription', {
-            percent: activeDiscount?.discount_percent || 0,
-          }),
-          buttons: [
-            { id: 'cancel', type: 'cancel', text: '' },
-            { id: 'confirm', type: 'destructive', text: t('promo.deactivate.confirm') },
-          ],
-        })
-        .then((buttonId) => {
-          if (buttonId === 'confirm') {
-            deactivateMutation.mutate();
-          }
-        });
-    } else {
-      const confirmed = window.confirm(
-        t('promo.deactivate.confirmDescription', {
-          percent: activeDiscount?.discount_percent || 0,
-        }),
-      );
-      if (confirmed) {
-        deactivateMutation.mutate();
-      }
+    const confirmed = await confirmDeactivate(
+      t('promo.deactivate.confirmDescription', {
+        percent: activeDiscount?.discount_percent || 0,
+      }),
+      t('promo.deactivate.confirm'),
+      t('promo.deactivate.confirmTitle'),
+    );
+    if (confirmed) {
+      deactivateMutation.mutate();
     }
   };
 
@@ -252,9 +224,9 @@ export default function PromoOffersSection({ className = '' }: PromoOffersSectio
               </button>
               <button
                 onClick={handleDeactivateClick}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-dark-600/50 bg-dark-900/50 px-4 py-2.5 text-sm text-dark-400 transition-colors hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-400"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-dark-600/50 bg-dark-900/50 px-4 py-2.5 text-sm text-dark-400 transition-colors hover:border-error-500/30 hover:bg-error-500/10 hover:text-error-400"
               >
-                <XCircleIcon />
+                <XCircleIcon className="h-4 w-4" />
                 <span>{t('promo.deactivate.button')}</span>
               </button>
             </div>
@@ -282,10 +254,10 @@ export default function PromoOffersSection({ className = '' }: PromoOffersSectio
           {availableOffers.map((offer) => (
             <div
               key={offer.id}
-              className="card border-orange-500/30 bg-gradient-to-br from-orange-500/5 to-transparent transition-colors hover:border-orange-500/50"
+              className="card border-warning-500/30 bg-gradient-to-br from-warning-500/5 to-transparent transition-colors hover:border-warning-500/50"
             >
               <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500/30 to-amber-500/20">
+                <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-warning-500/30 to-warning-500/20">
                   {getOfferIcon(offer.effect_type, offer.discount_percent)}
                 </div>
                 <div className="min-w-0 flex-1">
@@ -308,7 +280,7 @@ export default function PromoOffersSection({ className = '' }: PromoOffersSectio
                     <button
                       onClick={() => handleClaim(offer.id)}
                       disabled={claimingId === offer.id}
-                      className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-lg bg-gradient-to-r from-orange-500 to-amber-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-orange-500/25 transition-all hover:scale-105 hover:shadow-xl hover:shadow-orange-500/30 active:scale-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 sm:w-auto"
+                      className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-lg bg-gradient-to-r from-warning-500 to-warning-500 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-warning-500/25 transition-all hover:scale-105 hover:shadow-xl hover:shadow-warning-500/30 active:scale-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100 sm:w-auto"
                     >
                       {/* Shimmer effect */}
                       <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-1000 group-hover:translate-x-full" />

@@ -3,44 +3,17 @@ import { useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { adminPaymentsApi, type SearchStats } from '../api/adminPayments';
+import { DateField } from '../components/DateField';
 import { useCurrency } from '../hooks/useCurrency';
 import type { PendingPayment, PaginatedResponse } from '../types';
 import { usePlatform } from '../platform/hooks/usePlatform';
-
-// BackIcon
-const BackIcon = () => (
-  <svg
-    className="h-5 w-5 text-dark-400"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2}
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-  </svg>
-);
-
-// SearchIcon
-const SearchIcon = () => (
-  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-    />
-  </svg>
-);
-
-// CalendarIcon
-const CalendarIcon = () => (
-  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
-    />
-  </svg>
-);
+import {
+  BackIcon,
+  SearchIcon,
+  CalendarIcon,
+  RefreshIcon,
+  CheckCircleIcon,
+} from '@/components/icons';
 
 interface StatusBadgeProps {
   status: string;
@@ -48,9 +21,9 @@ interface StatusBadgeProps {
 
 function StatusBadge({ status }: StatusBadgeProps) {
   const styles: Record<string, string> = {
-    paid: 'bg-green-500/20 text-green-400',
-    pending: 'bg-amber-500/20 text-amber-400',
-    cancelled: 'bg-red-500/20 text-red-400',
+    paid: 'bg-success-500/20 text-success-400',
+    pending: 'bg-warning-500/20 text-warning-400',
+    cancelled: 'bg-error-500/20 text-error-400',
   };
 
   const normalized = status.toLowerCase();
@@ -76,9 +49,9 @@ interface StatCardProps {
 function StatCard({ label, value, color, isActive, onClick }: StatCardProps) {
   const colors: Record<string, string> = {
     blue: 'border-accent-500/30 bg-accent-500/20 text-accent-400',
-    amber: 'border-amber-500/30 bg-amber-500/20 text-amber-400',
-    green: 'border-green-500/30 bg-green-500/20 text-green-400',
-    red: 'border-red-500/30 bg-red-500/20 text-red-400',
+    amber: 'border-warning-500/30 bg-warning-500/20 text-warning-400',
+    green: 'border-success-500/30 bg-success-500/20 text-success-400',
+    red: 'border-error-500/30 bg-error-500/20 text-error-400',
   };
 
   return (
@@ -244,19 +217,7 @@ export default function AdminPayments() {
           </div>
         </div>
         <button onClick={() => refetch()} className="btn-secondary flex items-center gap-2">
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
-            />
-          </svg>
+          <RefreshIcon className="h-4 w-4" />
           {t('common.refresh')}
         </button>
       </div>
@@ -338,7 +299,7 @@ export default function AdminPayments() {
                 : 'bg-dark-800 text-dark-300 hover:bg-dark-700'
             }`}
           >
-            <CalendarIcon />
+            <CalendarIcon className="h-4 w-4" />
             {t('admin.payments.periodCustom')}
           </button>
 
@@ -367,20 +328,20 @@ export default function AdminPayments() {
             <label className="mb-1 block text-xs text-dark-400">
               {t('admin.payments.dateFrom')}
             </label>
-            <input
-              type="date"
+            <DateField
               value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full rounded-lg border border-dark-700 bg-dark-800 px-3 py-2 text-sm text-dark-100 focus:border-accent-500 focus:outline-none"
+              max={dateTo}
+              onChange={setDateFrom}
+              className="flex w-full items-center gap-2 rounded-lg border border-dark-700 bg-dark-800 px-3 py-2 text-sm text-dark-100 transition-colors hover:border-accent-500"
             />
           </div>
           <div className="flex-1">
             <label className="mb-1 block text-xs text-dark-400">{t('admin.payments.dateTo')}</label>
-            <input
-              type="date"
+            <DateField
               value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="w-full rounded-lg border border-dark-700 bg-dark-800 px-3 py-2 text-sm text-dark-100 focus:border-accent-500 focus:outline-none"
+              min={dateFrom}
+              onChange={setDateTo}
+              className="flex w-full items-center gap-2 rounded-lg border border-dark-700 bg-dark-800 px-3 py-2 text-sm text-dark-100 transition-colors hover:border-accent-500"
             />
           </div>
           <button onClick={() => refetch()} className="btn-primary px-4 py-2 text-sm">
@@ -457,7 +418,7 @@ export default function AdminPayments() {
                           {payment.method_display}
                         </span>
                         {payment.is_paid && (
-                          <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-xs font-medium text-green-400">
+                          <span className="rounded-full bg-success-500/20 px-2 py-0.5 text-xs font-medium text-success-400">
                             {t('admin.payments.paid')}
                           </span>
                         )}
@@ -587,7 +548,7 @@ export default function AdminPayments() {
                       <div
                         className={`mt-3 rounded-lg p-2 text-sm ${
                           checkPaymentMutation.data?.status_changed
-                            ? 'border border-green-500/30 bg-green-500/10 text-green-400'
+                            ? 'border border-success-500/30 bg-success-500/10 text-success-400'
                             : 'bg-dark-700/30 text-dark-400'
                         }`}
                       >
@@ -597,7 +558,7 @@ export default function AdminPayments() {
                   {checkPaymentMutation.isError &&
                     checkPaymentMutation.variables?.paymentId === payment.id &&
                     checkPaymentMutation.variables?.method === payment.method && (
-                      <div className="mt-3 rounded-lg border border-red-500/30 bg-red-500/10 p-2 text-sm text-red-400">
+                      <div className="mt-3 rounded-lg border border-error-500/30 bg-error-500/10 p-2 text-sm text-error-400">
                         {t('admin.payments.checkError')}
                       </div>
                     )}
@@ -608,19 +569,7 @@ export default function AdminPayments() {
         ) : (
           <div className="py-12 text-center">
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-dark-800">
-              <svg
-                className="h-8 w-8 text-dark-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
+              <CheckCircleIcon className="h-8 w-8 text-dark-500" />
             </div>
             <div className="text-dark-400">{t('admin.payments.noPayments')}</div>
           </div>

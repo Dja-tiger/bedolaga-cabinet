@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../hooks/useTheme';
 import { getGlassColors } from '../../utils/glassTheme';
 import { useHaptic } from '../../platform';
+import { CalendarIcon, CheckIcon, ChevronRightIcon, DevicesIcon } from '@/components/icons';
 import type { SubscriptionListItem } from '../../types';
 
 function formatDate(iso: string | null, locale?: string): string {
@@ -32,7 +33,7 @@ function StatusBadge({
 
   if (isTrial) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full border border-amber-400/25 bg-amber-400/10 px-2 py-0.5 text-[10px] font-semibold text-amber-400">
+      <span className="inline-flex items-center gap-1 rounded-full border border-warning-400/25 bg-warning-400/10 px-2 py-0.5 text-[10px] font-semibold text-warning-400">
         <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
         </svg>
@@ -42,10 +43,10 @@ function StatusBadge({
   }
 
   const color = isActive
-    ? 'bg-emerald-400/15 text-emerald-400 border-emerald-400/20'
+    ? 'bg-success-400/15 text-success-400 border-success-400/20'
     : isLimited
-      ? 'bg-amber-400/15 text-amber-400 border-amber-400/20'
-      : 'bg-red-400/15 text-red-400 border-red-400/20';
+      ? 'bg-warning-400/15 text-warning-400 border-warning-400/20'
+      : 'bg-error-400/15 text-error-400 border-error-400/20';
 
   const label = isActive
     ? t('subscription.statusActive', 'Активна')
@@ -96,7 +97,11 @@ export default function SubscriptionListCard({
       ? Math.min(100, (trafficUsed / trafficLimit) * 100)
       : 0;
   const trafficColor =
-    trafficPercent >= 90 ? 'bg-red-400' : trafficPercent >= 70 ? 'bg-amber-400' : 'bg-emerald-400';
+    trafficPercent >= 90
+      ? 'bg-error-400'
+      : trafficPercent >= 70
+        ? 'bg-warning-400'
+        : 'bg-success-400';
 
   const isLimitedStatus = subscription.status === 'limited';
 
@@ -132,15 +137,7 @@ export default function SubscriptionListCard({
           </span>
           <StatusBadge status={subscription.status} isTrial={isTrial} t={t} />
         </div>
-        <svg
-          className="h-4 w-4 shrink-0 opacity-30"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2.5}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-        </svg>
+        <ChevronRightIcon className="h-4 w-4 shrink-0 opacity-30" />
       </div>
 
       {/* Traffic mini progress bar */}
@@ -173,29 +170,11 @@ export default function SubscriptionListCard({
         style={{ color: g.textSecondary }}
       >
         <span className="flex items-center gap-1">
-          <svg
-            className="h-3.5 w-3.5 opacity-50"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <rect x="5" y="2" width="14" height="20" rx="2" />
-            <path d="M12 18h.01" />
-          </svg>
+          <DevicesIcon className="h-3.5 w-3.5 opacity-50" />
           {subscription.device_limit}
         </span>
         <span className="flex items-center gap-1">
-          <svg
-            className="h-3.5 w-3.5 opacity-50"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <rect x="3" y="4" width="18" height="18" rx="2" />
-            <path d="M16 2v4M8 2v4M3 10h18" />
-          </svg>
+          <CalendarIcon className="h-3.5 w-3.5 opacity-50" />
           {formatDate(subscription.end_date, i18n.language)}
         </span>
         {!isTrial &&
@@ -207,21 +186,21 @@ export default function SubscriptionListCard({
               : t('subscription.autopay', 'Автопродление');
             return (
               <span
-                className={`flex items-center gap-1 ${enabled ? 'text-emerald-400/70' : 'text-red-400/50'}`}
+                className={`flex items-center gap-1 ${enabled ? 'text-success-400/70' : 'text-error-400/50'}`}
               >
-                <svg
-                  className="h-3 w-3"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2.5}
-                >
-                  {enabled ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                  ) : (
+                {enabled ? (
+                  <CheckIcon className="h-3 w-3" />
+                ) : (
+                  <svg
+                    className="h-3 w-3"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  )}
-                </svg>
+                  </svg>
+                )}
                 {label}
               </span>
             );

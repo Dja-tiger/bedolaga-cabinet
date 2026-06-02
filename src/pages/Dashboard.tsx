@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useAuthStore } from '../store/auth';
+import { displayName } from '../utils/displayName';
 import { useBlockingStore } from '../store/blocking';
 import { subscriptionApi } from '../api/subscription';
 import { referralApi } from '../api/referral';
@@ -20,12 +21,7 @@ import { promoApi } from '../api/promo';
 import PendingGiftCard from '../components/dashboard/PendingGiftCard';
 import SubscriptionListCard from '../components/subscription/SubscriptionListCard';
 import { API } from '../config/constants';
-
-const ChevronRightIcon = () => (
-  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-  </svg>
-);
+import { ChevronRightIcon, StarIcon } from '@/components/icons';
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -195,7 +191,12 @@ export default function Dashboard() {
     refreshTrafficMutation.mutate();
   }, [subscription, refreshTrafficMutation]);
 
-  const hasNoSubscription = subscriptionResponse?.has_subscription === false && !subLoading;
+  // В multi-tariff /cabinet/subscription отключён, поэтому subscriptionResponse=undefined.
+  // Используем список из /cabinet/subscriptions/list — пустой массив означает «нет подписок»,
+  // и тогда показываем TrialOfferCard. Без этой ветки multi-tariff юзер никогда не видел триал.
+  const hasNoSubscription = isMultiTariff
+    ? multiSubData !== undefined && (multiSubData.subscriptions?.length ?? 0) === 0
+    : subscriptionResponse?.has_subscription === false && !subLoading;
 
   // Show onboarding for new users after data loads
   useEffect(() => {
@@ -240,8 +241,8 @@ export default function Dashboard() {
   }, [t, subscription]);
 
   const handleOnboardingComplete = () => {
-    setShowOnboarding(false);
     completeOnboarding();
+    setShowOnboarding(false);
   };
 
   return (
@@ -249,7 +250,7 @@ export default function Dashboard() {
       {/* Header */}
       <div data-onboarding="welcome">
         <h1 className="text-2xl font-bold text-dark-50 sm:text-3xl">
-          {t('dashboard.welcome', { name: user?.first_name || user?.username || '' })}
+          {t('dashboard.welcome', { name: displayName(user) })}
         </h1>
         <div className="mt-1 flex flex-wrap items-center gap-2">
           <p className="text-dark-400">{t('dashboard.yourSubscription')}</p>
@@ -262,16 +263,7 @@ export default function Dashboard() {
                 color: 'rgb(var(--color-accent-400))',
               }}
             >
-              <svg
-                className="shrink-0"
-                width="10"
-                height="10"
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-              </svg>
+              <StarIcon filled className="h-2.5 w-2.5 shrink-0" />
               <span className="truncate">{promoGroupData.group_name}</span>
             </span>
           )}
@@ -354,13 +346,25 @@ export default function Dashboard() {
 
       {/* Trial Activation */}
       {hasNoSubscription && !trialLoading && trialInfo?.is_available && (
-        <TrialOfferCard
-          trialInfo={trialInfo}
-          balanceKopeks={balanceData?.balance_kopeks || 0}
-          balanceRubles={balanceData?.balance_rubles || 0}
-          activateTrialMutation={activateTrialMutation}
-          trialError={trialError}
-        />
+        <div className="space-y-3">
+          <TrialOfferCard
+            trialInfo={trialInfo}
+            balanceKopeks={balanceData?.balance_kopeks || 0}
+            balanceRubles={balanceData?.balance_rubles || 0}
+            activateTrialMutation={activateTrialMutation}
+            trialError={trialError}
+          />
+          {/* Новый пользователь не обязан активировать триал, чтобы попасть в
+              витрину — даём явный путь к покупке подписки. Раньше при доступном
+              триале это был единственный экран без кнопки покупки, и на дашборде
+              (вход по умолчанию) юзер оставался заперт (Telegram-баг #605056/#605063). */}
+          <Link
+            to="/subscription/purchase"
+            className="flex w-full items-center justify-center rounded-2xl border border-dashed border-white/15 p-3.5 text-sm font-medium opacity-60 transition-opacity hover:opacity-90"
+          >
+            {t('subscriptions.browsePlans', 'Посмотреть тарифы и купить подписку')}
+          </Link>
+        </div>
       )}
 
       {/* Promo Offers */}

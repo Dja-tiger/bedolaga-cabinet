@@ -2,55 +2,20 @@ import { useNavigate } from 'react-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { serversApi, ServerListItem } from '../api/servers';
-import { SyncIcon, EditIcon, CheckIcon, XIcon, UsersIcon, GiftIcon } from '../components/icons';
+import {
+  SyncIcon,
+  EditIcon,
+  CheckIcon,
+  XIcon,
+  UsersIcon,
+  GiftIcon,
+  BackIcon,
+} from '../components/icons';
 import { usePlatform } from '../platform/hooks/usePlatform';
 import Twemoji from 'react-twemoji';
 
-// BackIcon
-const BackIcon = () => (
-  <svg
-    className="h-5 w-5 text-dark-400"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2}
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-  </svg>
-);
-
 // Country flags (simple emoji mapping)
-const getCountryFlag = (code: string | null): string => {
-  if (!code) return '';
-  const codeMap: Record<string, string> = {
-    RU: '🇷🇺',
-    US: '🇺🇸',
-    DE: '🇩🇪',
-    NL: '🇳🇱',
-    GB: '🇬🇧',
-    FR: '🇫🇷',
-    FI: '🇫🇮',
-    SE: '🇸🇪',
-    PL: '🇵🇱',
-    CZ: '🇨🇿',
-    AT: '🇦🇹',
-    CH: '🇨🇭',
-    UA: '🇺🇦',
-    KZ: '🇰🇿',
-    JP: '🇯🇵',
-    KR: '🇰🇷',
-    SG: '🇸🇬',
-    HK: '🇭🇰',
-    CA: '🇨🇦',
-    AU: '🇦🇺',
-    BR: '🇧🇷',
-    IN: '🇮🇳',
-    TR: '🇹🇷',
-    IL: '🇮🇱',
-    AE: '🇦🇪',
-  };
-  return codeMap[code.toUpperCase()] || code;
-};
+import { getFlagEmoji as getCountryFlag } from '../utils/subscriptionHelpers';
 
 export default function AdminServers() {
   const { t } = useTranslation();

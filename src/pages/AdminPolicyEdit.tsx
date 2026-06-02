@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { rbacApi, AccessPolicy, CreatePolicyPayload, UpdatePolicyPayload } from '@/api/rbac';
 import { AdminBackButton } from '@/components/admin';
+import { XIcon } from '@/components/icons';
 
 // === Types ===
 
@@ -150,15 +151,7 @@ function IpTagInput({ values, onChange }: IpTagInputProps) {
             className="text-dark-400 transition-colors hover:text-dark-200"
             aria-label={t('admin.policies.conditions.removeIp', { ip })}
           >
-            <svg
-              className="h-3 w-3"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <XIcon className="h-3 w-3" />
           </button>
         </span>
       ))}
@@ -320,7 +313,7 @@ export default function AdminPolicyEdit() {
   }, []);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    (e: React.SyntheticEvent) => {
       e.preventDefault();
       setFormError(null);
 
@@ -455,7 +448,7 @@ export default function AdminPolicyEdit() {
                   onClick={() => setFormData((prev) => ({ ...prev, effect: 'deny' }))}
                   className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                     formData.effect === 'deny'
-                      ? 'border-red-500/50 bg-red-500/10 text-red-400'
+                      ? 'border-error-500/50 bg-error-500/10 text-error-400'
                       : 'border-dark-600 bg-dark-900 text-dark-400 hover:border-dark-500'
                   }`}
                 >
