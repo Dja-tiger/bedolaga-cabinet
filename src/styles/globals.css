@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Flag emoji polyfill — Windows has no glyphs for regional-indicator flags, so
+   they fall back to country letters. This locally-bundled Twemoji flag font is
+   scoped via unicode-range to ONLY flag codepoints, so adding it to the front
+   of the font stacks fixes every flag everywhere without touching any markup
+   and without affecting any other text. Root fix, not a per-component wrap. */
+@font-face {
+  font-family: 'Twemoji Country Flags';
+  unicode-range: U+1F1E6-1F1FF, U+1F3F4, U+E0062-E007F;
+  src: url('/fonts/TwemojiCountryFlags.woff2') format('woff2');
+  font-display: swap;
+}
+
 /* Animated gradient border — @property enables CSS-only angle animation */
 @property --border-angle {
   syntax: '<angle>';
@@ -48,6 +60,24 @@
 @media (prefers-reduced-motion: reduce) {
   .hover-border-gradient {
     animation-play-state: paused;
+  }
+}
+
+/* Global reduced-motion defence — collapses every animation and transition
+   to ~0ms so users with vestibular disorders, motion sensitivity, or just
+   the OS-level preference set get instant state changes. State-conveying
+   motion still arrives at its final frame; only the journey is skipped.
+   Specific rules above (animation-play-state: paused, animation: none)
+   stay as documentation of intent — this rule subsumes them via !important.
+   WCAG 2.3.3 (Animation from Interactions). */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -179,6 +209,13 @@
     --color-error-800: 153, 27, 27;
     --color-error-900: 127, 29, 29;
     --color-error-950: 69, 10, 10;
+
+    /* Subscription-status semantic tokens — distinct from warning/error
+       because the urgency timeline ("expiring soon" vs "expired") needs a
+       sharper, hotter signal than the system-wide warning/error roles.
+       Extracted from inline #FFB800 / #FF3B5C in Subscription.tsx etc. */
+    --color-urgent-400: 255, 184, 0; /* #FFB800 — expiring soon */
+    --color-critical-500: 255, 59, 92; /* #FF3B5C — expired */
 
     /* Theme semantic colors (hex for direct use) */
     --color-dark-bg: #0a0f1a;
@@ -525,10 +562,19 @@ img.twemoji {
     }
   }
 
-  /* Buttons - Dark */
+  /* Buttons - Dark
+     min-h-[44px] on mobile (WCAG 2.5.5 AAA touch target floor), keeping
+     visual at py-2 / ~36px on desktop where mouse precision rules.
+     Cascades to every .btn-primary / .btn-secondary / .btn-ghost / .btn-danger. */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium duration-200 ease-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-dark-900 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium duration-200 ease-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-dark-900 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 sm:min-h-0;
     transition-property: color, background-color, border-color, box-shadow, transform, opacity;
+  }
+
+  .btn-icon {
+    /* Same logic for icon-only buttons. */
+    @apply min-h-[44px] min-w-[44px] rounded-lg p-2 text-dark-400 duration-200 hover:bg-dark-800 hover:text-dark-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500/50 active:scale-95 sm:min-h-0 sm:min-w-0;
+    transition-property: color, background-color, transform;
   }
 
   .btn-primary {
@@ -545,11 +591,6 @@ img.twemoji {
 
   .btn-danger {
     @apply btn border border-error-500/30 bg-error-500/10 text-error-400 hover:border-error-500/50 hover:bg-error-500/20 focus-visible:ring-error-500 active:bg-error-500/30;
-  }
-
-  .btn-icon {
-    @apply rounded-lg p-2 text-dark-400 duration-200 hover:bg-dark-800 hover:text-dark-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-500/50 active:scale-95;
-    transition-property: color, background-color, transform;
   }
 
   /* Highlighted button for onboarding */
@@ -615,16 +656,6 @@ img.twemoji {
 
   .badge-neutral {
     @apply badge border border-dark-600/50 bg-dark-700/50 text-dark-300;
-  }
-
-  /* Progress bar - Dark */
-  .progress-bar {
-    @apply h-2 w-full overflow-hidden rounded-full bg-dark-800;
-  }
-
-  .progress-fill {
-    @apply h-full rounded-full duration-500 ease-smooth;
-    transition-property: width, background-color;
   }
 
   /* Stat card - Dark */
@@ -793,11 +824,6 @@ img.twemoji {
     @apply border border-champagne-300 bg-champagne-200/50 text-champagne-700;
   }
 
-  /* Progress bar - Light */
-  .light .progress-bar {
-    @apply bg-champagne-200;
-  }
-
   /* Stat card - Light */
   .light .stat-value {
     @apply text-champagne-900;
@@ -903,15 +929,26 @@ img.twemoji {
   }
 
   .prose ul {
-    @apply mb-4 list-inside list-disc space-y-2 pl-2;
+    @apply mb-4 list-disc space-y-2 pl-6;
   }
 
   .prose ol {
-    @apply mb-4 list-inside list-decimal space-y-2 pl-2;
+    @apply mb-4 list-decimal space-y-2 pl-6;
   }
 
   .prose li {
     @apply text-dark-300;
+  }
+
+  /* TipTap wraps list-item content in <p>. Without these resets, the marker
+     stays on its line and the <p> drops to the next line, breaking lists
+     in the editor and on the rendered article page (Telegram bug #597116). */
+  .prose li > p {
+    @apply mb-0 inline;
+  }
+
+  .prose li > p + p {
+    @apply mt-2 block;
   }
 
   .prose li::marker {
@@ -1111,6 +1148,18 @@ img.twemoji {
 }
 
 @layer utilities {
+  /* Viewport height — correct across web (dvh) and Telegram Mini App.
+     main.tsx binds --tg-viewport-stable-height via bindViewportCssVars();
+     on the standalone web build the var is undefined and falls back to 100dvh. */
+  .min-h-viewport {
+    min-height: 100dvh;
+    min-height: var(--tg-viewport-stable-height, 100dvh);
+  }
+  .h-viewport {
+    height: 100dvh;
+    height: var(--tg-viewport-stable-height, 100dvh);
+  }
+
   /* Text gradient */
   .text-gradient {
     @apply bg-gradient-to-r from-accent-400 to-accent-600 bg-clip-text text-transparent;
@@ -1329,6 +1378,89 @@ input[type='checkbox']:focus {
 input[type='checkbox']:hover:not(:checked) {
   border-color: rgb(var(--color-dark-500));
   background-color: rgb(var(--color-dark-600));
+}
+
+/* Recharts: bars, pie sectors and dots become focusable, so clicking one draws
+   the browser's focus outline — a visual artifact on read-only charts. Kill it. */
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-wrapper :focus,
+.recharts-wrapper :focus-visible,
+.recharts-surface,
+.recharts-sector,
+.recharts-rectangle {
+  outline: none;
+}
+
+/* react-day-picker (DateField) — themed via the library's CSS variables.
+   The library declares its rdp variables ON .rdp-root, so overriding them on a
+   parent (.rdp-dark) gets shadowed. We must target `.rdp-dark .rdp-root` to win.
+   All colors go through the app's theme tokens (the dark and accent scales),
+   which flip for light themes (e.g. champagne) — so the picker stays legible in
+   every theme without bespoke per-theme rules. */
+.rdp-dark {
+  color: rgb(var(--color-dark-100));
+  font-size: 0.85rem;
+}
+.rdp-dark .rdp-root {
+  --rdp-accent-color: rgb(var(--color-accent-500));
+  --rdp-accent-background-color: rgb(var(--color-accent-500) / 0.18);
+  --rdp-today-color: rgb(var(--color-accent-400));
+  --rdp-day-height: 2.25rem;
+  --rdp-day-width: 2.25rem;
+  --rdp-outside-opacity: 0.4;
+  --rdp-disabled-opacity: 0.4;
+  --rdp-selected-border: none;
+  --rdp-weekday-opacity: 1;
+}
+.rdp-dark .rdp-month_caption,
+.rdp-dark .rdp-caption_label {
+  color: rgb(var(--color-dark-100));
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.rdp-dark .rdp-weekday {
+  color: rgb(var(--color-dark-400));
+  font-weight: 500;
+  text-transform: capitalize;
+}
+.rdp-dark .rdp-day_button {
+  color: rgb(var(--color-dark-100));
+  border: none;
+  border-radius: 0.5rem;
+}
+.rdp-dark .rdp-day_button:hover:not([disabled]) {
+  background-color: rgb(var(--color-dark-700));
+}
+.rdp-dark .rdp-day_button:focus-visible {
+  outline: 2px solid rgb(var(--color-accent-500));
+  outline-offset: 1px;
+}
+/* Today: accent-tinted text + subtle ring (loses to the filled "selected" look). */
+.rdp-dark .rdp-today:not(.rdp-outside) .rdp-day_button {
+  color: rgb(var(--color-accent-400));
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgb(var(--color-accent-500) / 0.45);
+}
+.rdp-dark .rdp-selected .rdp-day_button {
+  background-color: rgb(var(--color-accent-500));
+  color: #fff;
+  font-weight: 700;
+  border: none;
+  box-shadow: none;
+}
+.rdp-dark .rdp-chevron {
+  fill: currentColor;
+}
+.rdp-dark .rdp-button_previous,
+.rdp-dark .rdp-button_next {
+  color: rgb(var(--color-dark-300));
+  border-radius: 0.5rem;
+}
+.rdp-dark .rdp-button_previous:hover:not([disabled]),
+.rdp-dark .rdp-button_next:hover:not([disabled]) {
+  color: rgb(var(--color-dark-100));
+  background-color: rgb(var(--color-dark-700));
 }
 
 .light input[type='checkbox'] {

@@ -10,70 +10,16 @@ import { useNavigate } from 'react-router';
 import { useSuccessNotification } from '../store/successNotification';
 import { useCurrency } from '../hooks/useCurrency';
 import { useTelegramSDK } from '../hooks/useTelegramSDK';
+import { useFocusTrap } from '../hooks/useFocusTrap';
 import { useHaptic } from '@/platform';
-
-// Icons
-const CheckCircleIcon = () => (
-  <svg
-    className="h-16 w-16"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={1.5}
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-    />
-  </svg>
-);
-
-const WalletIcon = () => (
-  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3"
-    />
-  </svg>
-);
-
-const RocketIcon = () => (
-  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"
-    />
-  </svg>
-);
-
-const DevicesIcon = () => (
-  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3"
-    />
-  </svg>
-);
-
-const TrafficIcon = () => (
-  <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"
-    />
-  </svg>
-);
-
-const CloseIcon = () => (
-  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-  </svg>
-);
+import {
+  CheckCircleIcon,
+  CloseIcon,
+  DevicesIcon,
+  RocketIcon,
+  TrafficIcon,
+  WalletIcon,
+} from '@/components/icons';
 
 export default function SuccessNotificationModal() {
   const { t } = useTranslation();
@@ -92,6 +38,9 @@ export default function SuccessNotificationModal() {
   const handleClose = useCallback(() => {
     hide();
   }, [hide]);
+
+  // Esc + scroll-lock are handled by the effects below; the trap only manages focus.
+  const modalRef = useFocusTrap<HTMLDivElement>(isOpen, { lockScroll: false });
 
   // Escape key to close
   useEffect(() => {
@@ -157,33 +106,33 @@ export default function SuccessNotificationModal() {
   // Determine title and message
   let title = data.title;
   const message = data.message;
-  let icon = <CheckCircleIcon />;
+  let icon = <CheckCircleIcon className="h-16 w-16" />;
   let gradientClass = 'from-success-500 to-success-600';
 
   if (!title) {
     if (isBalanceTopup) {
       title = t('successNotification.balanceTopup.title', 'Balance topped up!');
-      icon = <WalletIcon />;
+      icon = <WalletIcon className="h-8 w-8" />;
       gradientClass = 'from-success-500 to-success-600';
     } else if (data.type === 'subscription_activated') {
       title = t('successNotification.subscriptionActivated.title', 'Subscription activated!');
-      icon = <RocketIcon />;
+      icon = <RocketIcon className="h-8 w-8" />;
       gradientClass = 'from-accent-500 to-purple-600';
     } else if (data.type === 'subscription_renewed') {
       title = t('successNotification.subscriptionRenewed.title', 'Subscription renewed!');
-      icon = <RocketIcon />;
+      icon = <RocketIcon className="h-8 w-8" />;
       gradientClass = 'from-accent-500 to-purple-600';
     } else if (data.type === 'subscription_purchased') {
       title = t('successNotification.subscriptionPurchased.title', 'Subscription purchased!');
-      icon = <RocketIcon />;
+      icon = <RocketIcon className="h-8 w-8" />;
       gradientClass = 'from-accent-500 to-purple-600';
     } else if (data.type === 'devices_purchased') {
       title = t('successNotification.devicesPurchased.title', 'Devices added!');
-      icon = <DevicesIcon />;
+      icon = <DevicesIcon className="h-8 w-8" />;
       gradientClass = 'from-blue-500 to-cyan-600';
     } else if (data.type === 'traffic_purchased') {
       title = t('successNotification.trafficPurchased.title', 'Traffic added!');
-      icon = <TrafficIcon />;
+      icon = <TrafficIcon className="h-8 w-8" />;
       gradientClass = 'from-success-500 to-success-600';
     }
   }
@@ -201,10 +150,15 @@ export default function SuccessNotificationModal() {
   const modalContent = (
     <div className="fixed inset-0 z-[100] flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={handleClose} />
+      <div className="absolute inset-0 bg-dark-950/80 backdrop-blur-sm" onClick={handleClose} />
 
       {/* Modal */}
       <div
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="success-modal-title"
+        tabIndex={-1}
         className="relative mx-4 w-full max-w-sm overflow-hidden rounded-3xl border border-dark-700/50 bg-dark-900 shadow-2xl"
         style={{
           marginBottom: safeBottom ? `${safeBottom}px` : undefined,
@@ -214,6 +168,7 @@ export default function SuccessNotificationModal() {
         {/* Close button */}
         <button
           onClick={handleClose}
+          aria-label={t('common.close')}
           className="absolute right-3 top-3 z-10 rounded-xl p-2 text-dark-400 transition-colors hover:bg-dark-800 hover:text-dark-200"
         >
           <CloseIcon />
@@ -223,8 +178,12 @@ export default function SuccessNotificationModal() {
         <div
           className={`flex flex-col items-center bg-gradient-to-br ${gradientClass} px-6 pb-8 pt-10`}
         >
-          <div className="mb-4 animate-bounce text-white">{icon}</div>
-          <h2 className="text-center text-2xl font-bold text-white">{title}</h2>
+          {/* Use animate-pulse for celebration; bounce easing reads dated and
+              the lift is the moment, not the bounce. */}
+          <div className="mb-4 animate-pulse text-white">{icon}</div>
+          <h2 id="success-modal-title" className="text-center text-2xl font-bold text-white">
+            {title}
+          </h2>
           {message && <p className="mt-2 text-center text-white/80">{message}</p>}
         </div>
 
@@ -318,9 +277,9 @@ export default function SuccessNotificationModal() {
             {isSubscription && (
               <button
                 onClick={handleGoToSubscription}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-accent-500 to-accent-600 py-3.5 font-bold text-white shadow-lg shadow-accent-500/25 transition-all hover:from-accent-400 hover:to-accent-500 active:from-accent-600 active:to-accent-700"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent-500 py-3.5 font-bold text-white shadow-lg shadow-accent-500/25 transition-colors hover:bg-accent-400 active:bg-accent-600"
               >
-                <RocketIcon />
+                <RocketIcon className="h-8 w-8" />
                 <span>{t('successNotification.goToSubscription', 'Go to Subscription')}</span>
               </button>
             )}
@@ -328,9 +287,9 @@ export default function SuccessNotificationModal() {
             {isBalanceTopup && (
               <button
                 onClick={handleGoToBalance}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-success-500 to-success-600 py-3.5 font-bold text-white shadow-lg shadow-success-500/25 transition-all hover:from-success-400 hover:to-success-500 active:from-success-600 active:to-success-700"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-success-500 py-3.5 font-bold text-white shadow-lg shadow-success-500/25 transition-colors hover:bg-success-400 active:bg-success-600"
               >
-                <WalletIcon />
+                <WalletIcon className="h-8 w-8" />
                 <span>{t('successNotification.goToBalance', 'Go to Balance')}</span>
               </button>
             )}
@@ -338,9 +297,9 @@ export default function SuccessNotificationModal() {
             {isDevicesPurchased && (
               <button
                 onClick={handleGoToSubscription}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-600 py-3.5 font-bold text-white shadow-lg shadow-blue-500/25 transition-all hover:from-blue-400 hover:to-cyan-500 active:from-blue-600 active:to-cyan-700"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent-500 py-3.5 font-bold text-white shadow-lg shadow-accent-500/25 transition-colors hover:bg-accent-400 active:bg-accent-600"
               >
-                <DevicesIcon />
+                <DevicesIcon className="h-8 w-8" />
                 <span>{t('successNotification.goToSubscription', 'Go to Subscription')}</span>
               </button>
             )}
@@ -348,9 +307,9 @@ export default function SuccessNotificationModal() {
             {isTrafficPurchased && (
               <button
                 onClick={handleGoToSubscription}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-success-500 to-success-600 py-3.5 font-bold text-white shadow-lg shadow-success-500/25 transition-all hover:from-success-400 hover:to-success-500 active:from-success-600 active:to-success-700"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-success-500 py-3.5 font-bold text-white shadow-lg shadow-success-500/25 transition-colors hover:bg-success-400 active:bg-success-600"
               >
-                <TrafficIcon />
+                <TrafficIcon className="h-8 w-8" />
                 <span>{t('successNotification.goToSubscription', 'Go to Subscription')}</span>
               </button>
             )}

@@ -12,25 +12,9 @@ import type { PaginatedResponse, Transaction } from '../types';
 
 import { Card } from '@/components/data-display/Card';
 import { Button } from '@/components/primitives/Button';
-import { ChevronDownIcon, ChevronRightIcon } from '@/components/icons';
+import { ChevronDownIcon, ChevronRightIcon, CreditCardIcon, WalletIcon } from '@/components/icons';
 import { staggerContainer, staggerItem } from '@/components/motion/transitions';
 import { isPaidStatus, isFailedStatus } from '../utils/paymentStatus';
-
-const WalletIcon = ({ className = 'h-8 w-8' }: { className?: string }) => (
-  <svg
-    className={className}
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={1.5}
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"
-    />
-  </svg>
-);
 
 export default function Balance() {
   const { t } = useTranslation();
@@ -210,9 +194,12 @@ export default function Balance() {
         <h1 className="text-2xl font-bold text-dark-50 sm:text-3xl">{t('balance.title')}</h1>
       </motion.div>
 
-      {/* Balance Card */}
+      {/* Balance Card — flat surface; the giant numeric carries the
+          weight. The previous accent gradient + glow leaked accent into
+          decoration (DESIGN.md Tunable-but-Scarce Rule) and read as the
+          SaaS hero-metric template. */}
       <motion.div variants={staggerItem}>
-        <Card className="bg-gradient-to-br from-accent-500/10 to-transparent" glow>
+        <Card>
           <div className="mb-2 text-sm text-dark-400">{t('balance.currentBalance')}</div>
           <div className="text-4xl font-bold text-dark-50 sm:text-5xl">
             {formatAmount(balanceData?.balance_rubles || 0)}
@@ -343,7 +330,7 @@ export default function Balance() {
                       </div>
                     )}
                     <div className="mt-3 text-xs text-dark-600">
-                      {formatAmount(method.min_amount_kopeks / 100, 0)} –{' '}
+                      {formatAmount(method.min_amount_kopeks / 100, 0)} {t('common.rangeTo', 'to')}{' '}
                       {formatAmount(method.max_amount_kopeks / 100, 0)} {currencySymbol}
                     </div>
                   </Card>
@@ -482,7 +469,7 @@ export default function Balance() {
           <Card interactive onClick={() => navigate('/balance/saved-cards')}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="text-xl">💳</span>
+                <CreditCardIcon className="h-5 w-5 text-dark-400" />
                 <span className="font-medium text-dark-100">{t('balance.savedCards.title')}</span>
               </div>
               <ChevronRightIcon className="h-5 w-5 text-dark-400" />

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { referralNetworkApi } from '@/api/referralNetwork';
+import { CheckIcon, CloseIcon, PlusIcon, SearchIcon } from '@/components/icons';
 import { MAX_SCOPE_ITEMS } from '@/store/referralNetwork';
 import type { ScopeSelection, ScopeType } from '@/types/referralNetwork';
 
@@ -29,28 +30,6 @@ const AVATAR_LETTERS: Record<ScopeType, string> = {
   partner: 'P',
   user: 'U',
 };
-
-function CheckIcon() {
-  return (
-    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-    </svg>
-  );
-}
-
-function CloseIcon({ className = 'h-3 w-3' }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2}
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  );
-}
 
 function Spinner({ size = 'h-5 w-5' }: { size?: string }) {
   return (
@@ -245,7 +224,7 @@ export function ScopeSelector({ value, onAdd, onRemove, onClear, className }: Sc
                   aria-label={t('admin.referralNetwork.scope.removeItem', { label: item.label })}
                   className="ml-0.5 rounded-sm p-0.5 transition-colors hover:bg-white/10"
                 >
-                  <CloseIcon />
+                  <CloseIcon className="h-3 w-3" />
                 </button>
               </span>
             ))}
@@ -273,25 +252,17 @@ export function ScopeSelector({ value, onAdd, onRemove, onClear, className }: Sc
           }`}
           disabled={isMaxReached && !isDropdownOpen}
         >
-          <svg
-            className="h-4 w-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
+          <PlusIcon className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Dropdown */}
+      {/* Dropdown — this is a non-modal popover containing tabs + search +
+          listbox. role="dialog" would imply modality and own the focus, but
+          we keep the page reachable behind it. The button's aria-haspopup
+          and aria-expanded already announce the popup; AT can navigate into
+          it directly. The inner div carries role="listbox". */}
       {isDropdownOpen && (
-        <div
-          className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-dark-700/50 bg-dark-800 shadow-xl backdrop-blur-md"
-          role="dialog"
-          aria-label={t('admin.referralNetwork.scope.addScope')}
-        >
+        <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-xl border border-dark-700/50 bg-dark-800 shadow-xl backdrop-blur-md">
           {/* Max reached banner */}
           {isMaxReached && (
             <div className="border-b border-dark-700/50 px-3 py-1.5 text-center text-xs text-warning-400">
@@ -323,19 +294,7 @@ export function ScopeSelector({ value, onAdd, onRemove, onClear, className }: Sc
             </div>
 
             <div className="relative min-w-0 flex-1">
-              <svg
-                className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-dark-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
-                />
-              </svg>
+              <SearchIcon className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-dark-500" />
               <input
                 ref={inputRef}
                 type="text"

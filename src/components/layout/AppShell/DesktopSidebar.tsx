@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 
 import { useAuthStore } from '@/store/auth';
+import { displayName } from '@/utils/displayName';
 import {
   brandingApi,
   getCachedBranding,
@@ -95,7 +96,7 @@ export function DesktopSidebar({
   };
 
   return (
-    <aside className="fixed left-0 top-0 z-40 flex h-screen w-60 flex-col border-r border-dark-700/30 bg-dark-950/80 backdrop-blur-linear">
+    <aside className="h-viewport fixed left-0 top-0 z-40 flex w-60 flex-col border-r border-dark-700/30 bg-dark-950/80 backdrop-blur-linear">
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-dark-700/30 px-4">
         <Link to="/" className="flex items-center gap-3" onClick={handleNavClick}>
@@ -188,9 +189,7 @@ export function DesktopSidebar({
             <UserIcon className="h-4 w-4 text-dark-400" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-dark-100">
-              {user?.first_name || user?.username || `#${user?.telegram_id}`}
-            </p>
+            <p className="truncate text-sm font-medium text-dark-100">{displayName(user)}</p>
             <p className="truncate text-xs text-dark-500">
               @{user?.username || `ID: ${user?.telegram_id}`}
             </p>

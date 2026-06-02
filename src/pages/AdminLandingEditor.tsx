@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { PiCaretDown } from 'react-icons/pi';
 import { useNavigate, useParams } from 'react-router';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +14,7 @@ import {
 } from '../api/landings';
 import { tariffsApi, TariffListItem, PeriodPrice } from '../api/tariffs';
 import { formatPrice } from '../utils/format';
+import { useCurrency } from '../hooks/useCurrency';
 import { adminPaymentMethodsApi } from '../api/adminPaymentMethods';
 import { Toggle, LocaleTabs, LocalizedInput } from '../components/admin';
 import { BackgroundConfigEditor } from '../components/admin/BackgroundConfigEditor';
@@ -51,15 +53,7 @@ function isoToDatetimeLocal(iso: string): string {
 }
 
 const ChevronDownIcon = ({ open }: { open: boolean }) => (
-  <svg
-    className={cn('h-5 w-5 transition-transform', open && 'rotate-180')}
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2}
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
-  </svg>
+  <PiCaretDown className={cn('h-5 w-5 transition-transform', open && 'rotate-180')} />
 );
 
 // ============ Collapsible Section ============
@@ -96,6 +90,9 @@ export default function AdminLandingEditor() {
   const notify = useNotify();
   const { capabilities } = usePlatform();
   const isEdit = !!id;
+
+  // Прогреваем кэш курсов валют для formatPrice (preview лендинга в не-RU локали).
+  useCurrency();
 
   // Section visibility
   const [openSections, setOpenSections] = useState<Record<string, boolean>>({

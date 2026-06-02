@@ -7,33 +7,7 @@ import { METHOD_LABELS } from '../constants/paymentMethods';
 import type { PromoGroupSimple } from '../types';
 import { usePlatform } from '../platform/hooks/usePlatform';
 import { createNumberInputHandler, toNumber } from '../utils/inputHelpers';
-const BackIcon = () => (
-  <svg
-    className="h-5 w-5 text-dark-400"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="currentColor"
-    strokeWidth={2}
-  >
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-  </svg>
-);
-
-const SaveIcon = () => (
-  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"
-    />
-  </svg>
-);
+import { BackIcon, CheckIcon, SaveIcon } from '@/components/icons';
 
 export default function AdminPaymentMethodEdit() {
   const { t } = useTranslation();
@@ -66,6 +40,7 @@ export default function AdminPaymentMethodEdit() {
   const [firstTopupFilter, setFirstTopupFilter] = useState<'any' | 'yes' | 'no'>('any');
   const [promoGroupFilterMode, setPromoGroupFilterMode] = useState<'all' | 'selected'>('all');
   const [selectedPromoGroupIds, setSelectedPromoGroupIds] = useState<number[]>([]);
+  const [openUrlDirect, setOpenUrlDirect] = useState(false);
 
   // Initialize state when config loads
   useEffect(() => {
@@ -79,6 +54,8 @@ export default function AdminPaymentMethodEdit() {
       setFirstTopupFilter(config.first_topup_filter);
       setPromoGroupFilterMode(config.promo_group_filter_mode);
       setSelectedPromoGroupIds(config.allowed_promo_group_ids);
+      // ?? false — защита от stale-config (backend ещё не пришёл с миграцией)
+      setOpenUrlDirect(config.open_url_direct ?? false);
     }
   }, [config]);
 
@@ -100,6 +77,7 @@ export default function AdminPaymentMethodEdit() {
       first_topup_filter: firstTopupFilter,
       promo_group_filter_mode: promoGroupFilterMode,
       allowed_promo_group_ids: promoGroupFilterMode === 'selected' ? selectedPromoGroupIds : [],
+      open_url_direct: openUrlDirect,
     };
 
     // Display name
@@ -137,7 +115,7 @@ export default function AdminPaymentMethodEdit() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="min-h-viewport flex items-center justify-center">
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent-500 border-t-transparent" />
       </div>
     );
@@ -203,6 +181,9 @@ export default function AdminPaymentMethodEdit() {
           </div>
           <button
             onClick={() => setIsEnabled(!isEnabled)}
+            role="switch"
+            aria-checked={isEnabled}
+            aria-label={t('admin.paymentMethods.methodEnabled')}
             className={`relative h-6 w-11 rounded-full transition-colors ${
               isEnabled ? 'bg-accent-500' : 'bg-dark-600'
             }`}
@@ -210,6 +191,36 @@ export default function AdminPaymentMethodEdit() {
             <span
               className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${
                 isEnabled ? 'left-6' : 'left-1'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Open URL directly toggle */}
+        <div className="flex items-center justify-between border-t border-dark-800 pt-6">
+          <div className="pr-4">
+            <div className="text-sm font-medium text-dark-200">
+              {t('admin.paymentMethods.openUrlDirect', 'Открывать страницу оплаты сразу')}
+            </div>
+            <div className="mt-0.5 text-xs text-dark-500">
+              {t(
+                'admin.paymentMethods.openUrlDirectHint',
+                'Без панели со ссылкой — провайдер открывается внутри MiniApp/вкладки сразу после клика. После оплаты юзер возвращается на /balance/result.',
+              )}
+            </div>
+          </div>
+          <button
+            onClick={() => setOpenUrlDirect(!openUrlDirect)}
+            role="switch"
+            aria-checked={openUrlDirect}
+            className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+              openUrlDirect ? 'bg-accent-500' : 'bg-dark-600'
+            }`}
+            aria-label={t('admin.paymentMethods.openUrlDirect', 'Open payment page directly')}
+          >
+            <span
+              className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${
+                openUrlDirect ? 'left-6' : 'left-1'
               }`}
             />
           </button>
@@ -425,7 +436,7 @@ export default function AdminPaymentMethodEdit() {
           {updateMethodMutation.isPending ? (
             <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
           ) : (
-            <SaveIcon />
+            <SaveIcon className="h-4 w-4" />
           )}
           {t('admin.paymentMethods.saveButton')}
         </button>

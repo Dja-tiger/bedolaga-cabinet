@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CheckIcon, CopyIcon } from '@/components/icons';
 import type { RemnawaveButtonClient, LocalizedText } from '@/types';
+import { copyToClipboard } from '@/utils/clipboard';
 
 // eslint-disable-next-line no-script-url
 const dangerousSchemes = ['javascript:', 'data:', 'vbscript:', 'file:'];
@@ -18,22 +20,6 @@ function isValidExternalUrl(url: string | undefined): boolean {
   if (dangerousSchemes.some((s) => lowerUrl.startsWith(s))) return false;
   return lowerUrl.startsWith('http://') || lowerUrl.startsWith('https://');
 }
-
-const CopyIcon = () => (
-  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-    />
-  </svg>
-);
-
-const CheckIcon = () => (
-  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-  </svg>
-);
 
 interface BlockButtonsProps {
   buttons: RemnawaveButtonClient[] | undefined;
@@ -64,16 +50,7 @@ export function BlockButtons({
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async (url: string) => {
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      const textarea = document.createElement('textarea');
-      textarea.value = url;
-      document.body.appendChild(textarea);
-      textarea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
-    }
+    await copyToClipboard(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }, []);
