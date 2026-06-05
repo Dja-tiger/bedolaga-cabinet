@@ -27,6 +27,13 @@ export default defineConfig({
         // Strip /api prefix: /api/cabinet/auth -> /cabinet/auth
         rewrite: (path) => path.replace(/^\/api/, ''),
       },
+      // The backend serves its liveness endpoint at the host root (not under
+      // /api). Proxy it too so the "service unavailable" detection probe hits the
+      // real backend in dev instead of the Vite server (which would mask outages).
+      '/health': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
     },
   },
   build: {
