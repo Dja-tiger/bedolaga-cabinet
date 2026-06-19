@@ -363,6 +363,7 @@ export default function Support() {
             </div>
             <Button
               variant="secondary"
+              className="shrink-0 whitespace-nowrap"
               onClick={() => {
                 const username = supportConfig.support_username!.startsWith('@')
                   ? supportConfig.support_username!.slice(1)
@@ -370,7 +371,7 @@ export default function Support() {
                 openTelegramLink(`https://t.me/${username}`);
               }}
             >
-              {t('support.contactUs')}
+              {t('support.writeButton', 'Написать')}
             </Button>
           </Card>
         </motion.div>
