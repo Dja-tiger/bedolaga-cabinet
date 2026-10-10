@@ -4,7 +4,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
   init,
   restoreInitData,
-  retrieveRawInitData,
   mountMiniApp,
   miniAppReady,
   mountViewport,
@@ -21,6 +20,7 @@ import {
 } from '@telegram-apps/sdk-react';
 import { clearStaleSessionIfNeeded } from './utils/token';
 import { installEncodingSurrogateGuard } from './utils/installEncodingSurrogateGuard';
+import { getTelegramInitData } from './utils/telegramInitData';
 import { useAuthStore } from './store/auth';
 import { AppWithNavigator } from './AppWithNavigator';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -62,7 +62,7 @@ if (isTelegramEnv && !alreadyInitialized) {
     init();
     restoreInitData();
 
-    clearStaleSessionIfNeeded(retrieveRawInitData() || null);
+    clearStaleSessionIfNeeded(getTelegramInitData());
 
     // Adopt the user's Telegram client language on first run (no explicit choice yet).
     applyTelegramLanguage();
