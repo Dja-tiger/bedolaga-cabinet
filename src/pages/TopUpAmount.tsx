@@ -1,3 +1,4 @@
+import { trackGoalOnce } from '../utils/metrika';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
@@ -186,6 +187,7 @@ export default function TopUpAmount() {
       try {
         const status = await openInvoice(data.invoice_url);
         if (status === 'paid') {
+          void trackGoalOnce('topup_paid', data.invoice_url);
           haptic.notification('success');
           setError(null);
           handleSuccess();

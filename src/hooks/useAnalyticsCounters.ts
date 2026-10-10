@@ -2,40 +2,14 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { brandingApi } from '../api/branding';
 import { setYandexCid } from '../utils/yandexCid';
+import { useLocation } from 'react-router';
+import { configureMetrika, trackPage } from '../utils/metrika';
 
-const YM_SCRIPT_ID = 'ym-counter-script';
 const GTAG_LOADER_ID = 'gtag-loader-script';
 const GTAG_INIT_ID = 'gtag-init-script';
 
 function removeElement(id: string) {
   document.getElementById(id)?.remove();
-}
-
-function injectYandexMetrika(counterId: string) {
-  if (!/^\d{1,15}$/.test(counterId)) return;
-  try {
-    localStorage.setItem('ym_counter_id', counterId);
-  } catch {
-    /* sandboxed / private */
-  }
-  if (document.getElementById(YM_SCRIPT_ID)) return;
-
-  const script = document.createElement('script');
-  script.id = YM_SCRIPT_ID;
-  script.type = 'text/javascript';
-  script.textContent = `
-    (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
-    m[i].l=1*new Date();
-    k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
-    (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
-    ym(${counterId}, "init", {
-      clickmap:true,
-      trackLinks:true,
-      accurateTrackBounce:true,
-      webvisor:true
-    });
-  `;
-  document.head.appendChild(script);
 }
 
 function injectGoogleAds(conversionId: string) {
@@ -66,6 +40,7 @@ function injectGoogleAds(conversionId: string) {
  * injects Yandex Metrika and/or Google Ads scripts into <head>.
  */
 export function useAnalyticsCounters() {
+  const { pathname } = useLocation();
   const { data } = useQuery({
     queryKey: ['analytics-counters'],
     queryFn: brandingApi.getAnalyticsCounters,
@@ -75,13 +50,10 @@ export function useAnalyticsCounters() {
   useEffect(() => {
     if (!data) return;
 
-    // Yandex Metrika
-    if (data.yandex_metrika_id) {
-      injectYandexMetrika(data.yandex_metrika_id);
+    configureMetrika(data.yandex_metrika_id);
+    if (/^\d{1,15}$/.test(data.yandex_metrika_id)) {
       cacheYandexCid(data.yandex_metrika_id);
       syncYandexCid(data.yandex_metrika_id);
-    } else {
-      removeElement(YM_SCRIPT_ID);
     }
 
     // Google Ads
@@ -92,6 +64,10 @@ export function useAnalyticsCounters() {
       removeElement(GTAG_INIT_ID);
     }
   }, [data]);
+
+  useEffect(() => {
+    if (data?.yandex_metrika_id) trackPage(pathname);
+  }, [pathname, data?.yandex_metrika_id]);
 }
 
 function cacheYandexCid(counterId: string) {

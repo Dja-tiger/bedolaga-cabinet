@@ -9,6 +9,7 @@ import {
 import { useBlockingStore } from '../store/blocking';
 import { reportPossibleBackendDown, markBackendReached } from './health';
 import { API } from '../config/constants';
+import { trackAnalyticsResponse } from '../utils/analyticsResponse';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -204,6 +205,11 @@ apiClient.interceptors.response.use(
     // (it bootstrapped). Recovery from a later outage can then just lift the
     // overlay instead of hard-reloading and losing unsaved UI state.
     markBackendReached();
+    try {
+      trackAnalyticsResponse(response);
+    } catch {
+      /* Analytics is optional. */
+    }
     return response;
   },
   async (error: AxiosError) => {
