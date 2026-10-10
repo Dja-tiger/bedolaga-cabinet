@@ -15,7 +15,8 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "preview": "vite preview",
-    "prepare": "husky"
+    "prepare": "husky",
+    "test:analytics": "vitest run tests/metrika.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
