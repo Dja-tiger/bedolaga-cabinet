@@ -18,9 +18,9 @@ tracking code does not create goals or dashboards; those are counter settings.
 | `registration_requested` | Standalone email registration accepted. |
 | `registration_verified` | Email verification returns an authenticated user. |
 | `trial_activated` | Trial API returns a trial subscription. |
-| `subscription_purchased` | Classic or tariff purchase returns `success: true`. |
+| `subscription_purchased` | Classic or new tariff purchase returns `success: true`; excludes targeted tariff renewals. |
 | `trial_converted` | Classic purchase also returns `was_trial_conversion: true`. |
-| `subscription_renewed` | Renewal API returns the new end date. |
+| `subscription_renewed` | Renewal API returns the new end date, or a successful tariff purchase targets an existing `subscription_id` (excluding trial conversion). |
 | `traffic_purchased` | Traffic purchase API returns added GB. |
 | `devices_purchased` | Device purchase API returns `success: true`. |
 | `support_ticket_created` | Ticket creation API returns an ID. |
@@ -45,6 +45,10 @@ Manual page views mask subscription/ticket IDs, purchase/gift/merge tokens and
 remove queries except five constrained UTM fields. Admin paths are omitted from
 manual page views. The existing Webvisor/link tracking settings remain enabled;
 they are separate automatic collection mechanisms.
+
+Page-view deduplication uses the original pathname locally, so different
+subscription IDs or landing slugs still produce separate views even when their
+sent URLs are identical. Only the masked URLs are sent as views and referrers.
 
 Early events wait for the first page view, with a bounded queue and a 60-second
 expiry. Payment confirmations are deduplicated using local SHA-256 identifiers;

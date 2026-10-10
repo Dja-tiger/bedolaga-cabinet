@@ -5,6 +5,8 @@ type YmWindow = Window & { ym?: YmFunction };
 let counter: number | null = null;
 let disabled = false;
 let previousUrl: string | null = null;
+// Keep the original route only in memory to distinguish masked page URLs.
+let previousPathname: string | null = null;
 const pending: { name: string; params?: GoalParams; key?: string; at: number }[] = [];
 const completed = new Set<string>();
 const storageKey = 'cabinet-metrika-completed-v1';
@@ -108,6 +110,7 @@ export function configureMetrika(id: string): void {
     counter = null;
     disabled = true;
     previousUrl = null;
+    previousPathname = null;
     pending.length = 0;
     return;
   }
@@ -143,6 +146,7 @@ export function configureMetrika(id: string): void {
   counter = next;
   disabled = false;
   previousUrl = null;
+  previousPathname = null;
   // Manual hit sends sanitized URLs, including the first view.
   w.ym(counter, 'init', {
     defer: true,
@@ -167,7 +171,10 @@ const pageGoals: [RegExp, string][] = [
 export function trackPage(pathname: string): void {
   if (!counter || typeof window === 'undefined') return;
   const path = analyticsPath(pathname);
-  if (!path) return;
+  if (!path) {
+    previousPathname = pathname;
+    return;
+  }
   const query = new URLSearchParams();
   const input = new URLSearchParams(location.search);
   for (const key of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term']) {
@@ -175,7 +182,7 @@ export function trackPage(pathname: string): void {
     if (value && /^[\p{L}\p{N}_ .-]{1,100}$/u.test(value)) query.set(key, value);
   }
   const url = location.origin + path + (query.size ? '?' + query.toString() : '');
-  if (url === previousUrl) return;
+  if (pathname === previousPathname && url === previousUrl) return;
   try {
     (window as YmWindow).ym?.(counter, 'hit', url, {
       title: 'Cabinet ' + path,
@@ -183,6 +190,7 @@ export function trackPage(pathname: string): void {
       params: { cabinet_page: path },
     });
     previousUrl = url;
+    previousPathname = pathname;
     for (const [pattern, goal] of pageGoals) if (pattern.test(path)) sendGoal(goal);
     // Send early auth/business events only after the first page view.
     for (const item of pending.splice(0))

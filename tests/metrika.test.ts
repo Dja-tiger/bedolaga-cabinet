@@ -4,9 +4,12 @@ import { webcrypto } from 'node:crypto';
 import { analyticsPath, configureMetrika, trackPage, trackGoal } from '../src/utils/metrika';
 import { trackAnalyticsResponse } from '../src/utils/analyticsResponse';
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  configureMetrika('');
+  vi.unstubAllGlobals();
+});
 
-test('SPA tracking, event success guards, privacy, payment deduplication and disabled counter', async () => {
+function mockBrowser() {
   const calls: unknown[][] = [];
   const storage = new Map<string, string>();
   const browserGlobals = {
@@ -30,6 +33,11 @@ test('SPA tracking, event success guards, privacy, payment deduplication and dis
   };
   for (const [key, value] of Object.entries(browserGlobals)) vi.stubGlobal(key, value);
   vi.stubGlobal('crypto', webcrypto);
+  return { calls, storage };
+}
+
+test('SPA tracking, event success guards, privacy, payment deduplication and disabled counter', async () => {
+  const { calls, storage } = mockBrowser();
   const response = (url: string, data: unknown, method = 'post', status = 200) =>
     trackAnalyticsResponse({ status, config: { url, method }, data });
   trackGoal('early_event');
@@ -91,4 +99,79 @@ test('SPA tracking, event success guards, privacy, payment deduplication and dis
   trackGoal('must_not_send');
   trackPage('/');
   assert.equal(calls.length, before + 1); // destruct only
+});
+
+test('masked routes retain separate page views without leaking their identities', () => {
+  const { calls } = mockBrowser();
+  configureMetrika('106533409');
+  for (const pathname of [
+    '/subscriptions/42',
+    '/subscriptions/43',
+    '/subscriptions/43', // StrictMode/repeated effect
+    '/subscriptions/42', // returning to a previously visited page
+    '/buy/private-landing-a',
+    '/buy/private-landing-b',
+    '/buy/private-landing-b',
+    '/buy/success/private-token-a',
+    '/buy/success/private-token-b',
+  ]) {
+    trackPage(pathname);
+  }
+  const hits = calls.filter((c) => c[1] === 'hit');
+  assert.equal(hits.length, 7);
+  assert.ok(hits.slice(0, 3).every((c) => String(c[2]).includes('/subscriptions/_item')));
+  assert.ok(hits.slice(3, 5).every((c) => String(c[2]).includes('/buy/_landing')));
+  assert.equal(calls.filter((c) => c[2] === 'quick_purchase_view').length, 2);
+  assert.ok(!JSON.stringify(calls).includes('private'));
+  assert.ok(!JSON.stringify(calls).includes('/42'));
+  assert.ok(!JSON.stringify(calls).includes('/43'));
+});
+
+test('returning from an excluded admin page still counts a new cabinet view', () => {
+  const { calls } = mockBrowser();
+  configureMetrika('106533409');
+  trackPage('/balance');
+  trackPage('/admin/users/42');
+  trackPage('/balance');
+  assert.equal(calls.filter((c) => c[1] === 'hit').length, 2);
+  assert.ok(!JSON.stringify(calls).includes('/admin'));
+});
+
+test('tariff renewals count separately from purchases using Axios request bodies', () => {
+  const { calls } = mockBrowser();
+  configureMetrika('106533409');
+  trackPage('/subscription/purchase');
+  const response = (requestData: unknown, data = { success: true, was_trial_conversion: false }) =>
+    trackAnalyticsResponse({
+      status: 200,
+      config: {
+        url: '/cabinet/subscription/purchase-tariff',
+        method: 'post',
+        data: requestData,
+      },
+      data,
+    });
+  const goals = () =>
+    calls
+      .filter((c) => c[1] === 'reachGoal' && c[2] !== 'subscription_purchase_view')
+      .map((c) => c[2]);
+
+  response({ tariff_id: 7, subscription_id: 42 });
+  response(JSON.stringify({ tariff_id: 7, subscription_id: 43 }));
+  assert.deepEqual(goals(), ['subscription_renewed', 'subscription_renewed']);
+
+  response(JSON.stringify({ tariff_id: 7 }));
+  response({ tariff_id: 7, subscription_id: null });
+  response({ tariff_id: 7, subscription_id: 42 }, { success: false, was_trial_conversion: false });
+  assert.deepEqual(goals(), [
+    'subscription_renewed',
+    'subscription_renewed',
+    'subscription_purchased',
+    'subscription_purchased',
+  ]);
+
+  response({ subscription_id: 42 }, { success: true, was_trial_conversion: true });
+  assert.deepEqual(goals().slice(-2), ['subscription_purchased', 'trial_converted']);
+  assert.ok(!JSON.stringify(calls).includes('subscription_id'));
+  assert.ok(!JSON.stringify(calls).includes('tariff_id'));
 });

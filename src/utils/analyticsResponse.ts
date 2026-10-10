@@ -3,8 +3,23 @@ import { isPaidStatus } from './paymentStatus';
 
 interface AnalyticsResponse {
   status: number;
-  config: { url?: string; method?: string };
+  config: { url?: string; method?: string; data?: unknown };
   data: unknown;
+}
+
+function isTariffRenewal(requestData: unknown): boolean {
+  // Axios serializes JSON bodies before the response interceptor runs.
+  try {
+    const body: unknown = typeof requestData === 'string' ? JSON.parse(requestData) : requestData;
+    if (!body || typeof body !== 'object' || !('subscription_id' in body)) return false;
+    return (
+      typeof body.subscription_id === 'number' &&
+      Number.isSafeInteger(body.subscription_id) &&
+      body.subscription_id > 0
+    );
+  } catch {
+    return false;
+  }
 }
 
 // Explicit endpoint allowlist. Never forward request bodies or response objects to analytics.
@@ -34,7 +49,11 @@ export function trackAnalyticsResponse(response: AnalyticsResponse): void {
     ['/cabinet/subscription/purchase', '/cabinet/subscription/purchase-tariff'].includes(path) &&
     data.success === true
   ) {
-    trackGoal('subscription_purchased');
+    const renewal =
+      path === '/cabinet/subscription/purchase-tariff' &&
+      isTariffRenewal(response.config.data) &&
+      data.was_trial_conversion !== true;
+    trackGoal(renewal ? 'subscription_renewed' : 'subscription_purchased');
     if (data.was_trial_conversion === true) trackGoal('trial_converted');
   }
   if (post && path === '/cabinet/subscription/renew' && data.new_end_date)
