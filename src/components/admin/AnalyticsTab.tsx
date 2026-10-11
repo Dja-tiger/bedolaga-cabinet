@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { brandingApi } from '../../api/branding';
+import { isGoogleAnalyticsId } from '../../utils/googleAnalytics';
 import { CheckIcon, CloseIcon, PencilIcon } from './icons';
 
 export function AnalyticsTab() {
@@ -10,6 +11,8 @@ export function AnalyticsTab() {
 
   // Editing states
   const [editingYandex, setEditingYandex] = useState(false);
+  const [editingGa4, setEditingGa4] = useState(false);
+  const [ga4Value, setGa4Value] = useState('');
   const [editingGoogleId, setEditingGoogleId] = useState(false);
   const [editingGoogleLabel, setEditingGoogleLabel] = useState(false);
   const [yandexValue, setYandexValue] = useState('');
@@ -32,7 +35,7 @@ export function AnalyticsTab() {
     },
     onError: (err: unknown) => {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setError(detail || t('common.error'));
+      setError(typeof detail === 'string' ? detail : t('common.error'));
     },
   });
 
@@ -57,6 +60,19 @@ export function AnalyticsTab() {
     );
   };
 
+  const handleSaveGa4 = () => {
+    const value = ga4Value.trim();
+    if (value && !isGoogleAnalyticsId(value)) {
+      setError(t('admin.settings.ga4IdInvalid'));
+      return;
+    }
+    updateMutation.mutate(
+      { google_analytics_id: value },
+      { onSuccess: () => setEditingGa4(false) },
+    );
+  };
+
+  const ga4Active = Boolean(analytics?.google_analytics_id);
   const yandexActive = Boolean(analytics?.yandex_metrika_id);
   const googleActive = Boolean(analytics?.google_ads_id);
 
@@ -208,6 +224,89 @@ export function AnalyticsTab() {
             )}
           </>
         )}
+      </div>
+
+      {/* Google Analytics 4 */}
+      <div className="rounded-2xl border border-dark-700/50 bg-dark-800/50 p-6">
+        <div className="mb-1 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-warning-500/20 to-accent-500/20">
+              <svg className="h-5 w-5 text-warning-400" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-dark-100">
+              {t('admin.settings.googleAnalytics')}
+            </h3>
+          </div>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+              ga4Active ? 'bg-success-500/15 text-success-400' : 'bg-dark-700/50 text-dark-500'
+            }`}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${ga4Active ? 'bg-success-400' : 'bg-dark-600'}`}
+            />
+            {ga4Active ? t('admin.settings.counterActive') : t('admin.settings.counterInactive')}
+          </span>
+        </div>
+        <p className="mb-5 ml-[52px] text-sm text-dark-400">
+          {t('admin.settings.googleAnalyticsDesc')}
+        </p>
+
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-dark-300">
+            {t('admin.settings.ga4MeasurementId')}
+          </label>
+          {editingGa4 ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={ga4Value}
+                onChange={(e) => setGa4Value(e.target.value)}
+                placeholder={t('admin.settings.ga4IdPlaceholder')}
+                className="flex-1 rounded-xl border border-dark-600 bg-dark-700 px-4 py-2.5 text-dark-100 placeholder-dark-500 transition-colors focus:border-accent-500 focus:outline-none"
+                autoFocus
+              />
+              <button
+                onClick={handleSaveGa4}
+                disabled={updateMutation.isPending}
+                className="rounded-xl bg-accent-500 px-4 py-2.5 text-on-accent transition-colors hover:bg-accent-600 disabled:opacity-50"
+              >
+                <CheckIcon />
+              </button>
+              <button
+                onClick={() => {
+                  setEditingGa4(false);
+                  setError(null);
+                }}
+                className="rounded-xl bg-dark-700 px-4 py-2.5 text-dark-300 transition-colors hover:bg-dark-600"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-base ${analytics?.google_analytics_id ? 'font-mono text-dark-100' : 'text-dark-500'}`}
+              >
+                {analytics?.google_analytics_id || t('admin.settings.notConfigured')}
+              </span>
+              <button
+                onClick={() => {
+                  setGa4Value(analytics?.google_analytics_id || '');
+                  setEditingGa4(true);
+                  setError(null);
+                }}
+                className="rounded-lg p-1.5 text-dark-400 transition-colors hover:bg-dark-700 hover:text-dark-200"
+              >
+                <PencilIcon className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+          <p className="text-xs text-dark-500">{t('admin.settings.ga4IdHint')}</p>
+          <p className="text-xs text-dark-400">{t('admin.settings.ga4PageViewsHint')}</p>
+        </div>
       </div>
 
       {/* Google Ads */}

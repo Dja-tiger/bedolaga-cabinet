@@ -4,40 +4,11 @@ import { brandingApi } from '../api/branding';
 import { setYandexCid } from '../utils/yandexCid';
 import { useLocation } from 'react-router';
 import { configureMetrika, trackPage } from '../utils/metrika';
-
-const GTAG_LOADER_ID = 'gtag-loader-script';
-const GTAG_INIT_ID = 'gtag-init-script';
-
-function removeElement(id: string) {
-  document.getElementById(id)?.remove();
-}
-
-function injectGoogleAds(conversionId: string) {
-  if (!/^[A-Za-z0-9_-]{1,30}$/.test(conversionId)) return;
-  if (document.getElementById(GTAG_LOADER_ID)) return;
-
-  // External gtag.js loader
-  const loader = document.createElement('script');
-  loader.id = GTAG_LOADER_ID;
-  loader.async = true;
-  loader.src = `https://www.googletagmanager.com/gtag/js?id=${conversionId}`;
-  document.head.appendChild(loader);
-
-  // Init script
-  const init = document.createElement('script');
-  init.id = GTAG_INIT_ID;
-  init.textContent = `
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', '${conversionId}');
-  `;
-  document.head.appendChild(init);
-}
+import { configureGoogleAnalytics, trackGooglePage } from '../utils/googleAnalytics';
 
 /**
  * Fetches analytics counter settings from the API and dynamically
- * injects Yandex Metrika and/or Google Ads scripts into <head>.
+ * initializes Yandex Metrika, Google Analytics 4 and Google Ads into <head>.
  */
 export function useAnalyticsCounters() {
   const { pathname } = useLocation();
@@ -56,18 +27,13 @@ export function useAnalyticsCounters() {
       syncYandexCid(data.yandex_metrika_id);
     }
 
-    // Google Ads
-    if (data.google_ads_id) {
-      injectGoogleAds(data.google_ads_id);
-    } else {
-      removeElement(GTAG_LOADER_ID);
-      removeElement(GTAG_INIT_ID);
-    }
+    configureGoogleAnalytics(data.google_analytics_id ?? '', data.google_ads_id);
   }, [data]);
 
   useEffect(() => {
     if (data?.yandex_metrika_id) trackPage(pathname);
-  }, [pathname, data?.yandex_metrika_id]);
+    if (data?.google_analytics_id) trackGooglePage(pathname);
+  }, [pathname, data?.yandex_metrika_id, data?.google_analytics_id]);
 }
 
 function cacheYandexCid(counterId: string) {

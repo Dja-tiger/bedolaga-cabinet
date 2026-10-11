@@ -46,6 +46,7 @@ export interface OfflineConvGoal {
 
 export interface AnalyticsCounters {
   yandex_metrika_id: string;
+  google_analytics_id?: string;
   google_ads_id: string;
   google_ads_label: string;
   offline_conv_enabled?: boolean;
@@ -286,6 +287,7 @@ export const brandingApi = {
     } catch {
       return {
         yandex_metrika_id: '',
+        google_analytics_id: '',
         google_ads_id: '',
         google_ads_label: '',
         offline_conv_enabled: false,
