@@ -6,6 +6,17 @@ export function isHappCryptolinkMode(mode: string | null | undefined): boolean {
   return normalized.includes('HAPP') && normalized.includes('CRYPT');
 }
 
+export function resolveAppDeepLinkForUi(
+  deepLink: string,
+  mode: string | null | undefined,
+  happCryptLink: string | null | undefined,
+): string {
+  // Cryptolink mode changes Happ imports only, never another client's app scheme.
+  return isHappCryptolinkMode(mode) && /^happ:\/\//i.test(deepLink) && happCryptLink
+    ? happCryptLink
+    : deepLink;
+}
+
 function isHttpUrl(url: string | null | undefined): url is string {
   return typeof url === 'string' && /^https?:\/\//i.test(url);
 }

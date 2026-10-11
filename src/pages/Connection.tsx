@@ -9,7 +9,8 @@ import { useHaptic } from '@/platform';
 import { SettingsIcon } from '@/components/icons';
 import { resolveTemplate, hasTemplates } from '../utils/templateEngine';
 import { openAppScheme } from '../utils/openAppScheme';
-import { isHappCryptolinkMode, resolveConnectionUrlForUi } from '../utils/connectionLink';
+import { resolveAppDeepLinkForUi, resolveConnectionUrlForUi } from '../utils/connectionLink';
+import { withIncyApps } from '../utils/connectionApps';
 import { useAuthStore } from '../store/auth';
 import type { AppConfig, RemnawavePlatformData } from '../types';
 import InstallationGuide from '../components/connection/InstallationGuide';
@@ -34,6 +35,7 @@ export default function Connection() {
   } = useQuery<AppConfig>({
     queryKey: ['appConfig', subId],
     queryFn: () => subscriptionApi.getAppConfig(subId),
+    select: withIncyApps,
   });
   const { data: connectionLink, isLoading: isConnectionLinkLoading } = useQuery({
     queryKey: ['connectionLink', subId],
@@ -113,11 +115,12 @@ export default function Connection() {
 
   const openDeepLink = useCallback(
     (deepLink: string) => {
-      let resolved = deepLink;
-      if (isHappCryptolinkMode(connectionLink?.connect_mode) && qrConnectionUrl) {
-        // In HAPP cryptolink mode always open the resolved happ://crypt... URL.
-        resolved = qrConnectionUrl;
-      } else if (hasTemplates(resolved)) {
+      let resolved = resolveAppDeepLinkForUi(
+        deepLink,
+        connectionLink?.connect_mode,
+        qrConnectionUrl,
+      );
+      if (hasTemplates(resolved)) {
         resolved = resolveUrl(resolved);
       }
       const isHttpUrl = /^https?:\/\//i.test(resolved);
