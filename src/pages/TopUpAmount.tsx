@@ -1,4 +1,4 @@
-import { trackGoalOnce } from '../utils/metrika';
+import { trackGoalOnce } from '../utils/analytics';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router';

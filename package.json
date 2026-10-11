@@ -16,7 +16,7 @@
     "test": "vitest run",
     "preview": "vite preview",
     "prepare": "husky",
-    "test:analytics": "vitest run tests/metrika.test.ts"
+    "test:analytics": "vitest run tests/metrika.test.ts tests/googleAnalytics.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

@@ -1,4 +1,4 @@
-import { trackGoal, trackGoalOnce } from './metrika';
+import { trackGoal, trackGoalOnce } from './analytics';
 import { isPaidStatus } from './paymentStatus';
 
 interface AnalyticsResponse {
