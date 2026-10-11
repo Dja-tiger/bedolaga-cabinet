@@ -13,14 +13,13 @@ import { useHaptic, usePlatform } from '@/platform';
 import { staggerContainer, staggerItem } from '@/components/motion/transitions';
 import type { PaymentMethod, PaymentMethodOption } from '../types';
 import BentoCard from '../components/ui/BentoCard';
+import { PaymentLinkDialog } from '../components/PaymentLinkDialog';
 import { saveTopUpPendingInfo } from '../utils/topUpStorage';
 import { getSafeRedirectPath } from '../utils/safeRedirect';
 import { openPaymentUrl } from '../utils/openPaymentUrl';
 import { copyToClipboard } from '@/utils/clipboard';
 import {
   CardIcon,
-  CheckIcon,
-  CopyIcon,
   CryptoIcon,
   ExclamationIcon,
   ExternalLinkIcon,
@@ -83,6 +82,8 @@ export default function TopUpAmount() {
   const { openInvoice, openTelegramLink, openLink, platform } = usePlatform();
   const haptic = useHaptic();
   const inputRef = useRef<HTMLInputElement>(null);
+  const paymentLinkButtonRef = useRef<HTMLButtonElement>(null);
+  const [isPaymentDialogOpen, setIsPaymentDialogOpen] = useState(false);
 
   const returnTo = searchParams.get('returnTo');
   const initialAmountRubles = searchParams.get('amount')
@@ -115,14 +116,14 @@ export default function TopUpAmount() {
   // Keyboard: Escape to go back
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !isPaymentDialogOpen) {
         e.preventDefault();
         handleNavigateBack();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleNavigateBack]);
+  }, [handleNavigateBack, isPaymentDialogOpen]);
 
   // Auto-redirect when success notification appears (e.g., balance topped up via WebSocket)
   useCloseOnSuccessNotification(handleSuccess);
@@ -267,6 +268,8 @@ export default function TopUpAmount() {
         }
 
         setPaymentUrl(redirectUrl);
+        setCopied(false);
+        setIsPaymentDialogOpen(true);
       }
     },
     onError: (err: unknown) => {
@@ -435,6 +438,19 @@ export default function TopUpAmount() {
         </div>
       </motion.div>
 
+      {/* Keep the existing link discoverable after closing the dialog, without another API call. */}
+      {paymentUrl && (
+        <button
+          ref={paymentLinkButtonRef}
+          type="button"
+          onClick={() => setIsPaymentDialogOpen(true)}
+          className="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border border-success-500/30 bg-success-500/10 px-4 py-3 font-semibold text-success-400 hover:bg-success-500/20"
+        >
+          <ExternalLinkIcon className="h-5 w-5 shrink-0" />
+          <span>{t('balance.openPaymentPage')}</span>
+        </button>
+      )}
+
       {/* Payment options (if any) */}
       {hasOptions && orderedOptions.length > 0 && (
         <motion.div variants={staggerItem} className="space-y-2">
@@ -573,46 +589,16 @@ export default function TopUpAmount() {
         </motion.div>
       )}
 
-      {/* Payment link display - shown when URL is received */}
       {paymentUrl && (
-        <motion.div
-          variants={staggerItem}
-          className="space-y-3 rounded-2xl border border-success-500/20 bg-success-500/10 p-4"
-        >
-          <div className="flex items-center gap-2 text-success-400">
-            <CheckIcon className="h-5 w-5" />
-            <span className="font-semibold">{t('balance.paymentReady')}</span>
-          </div>
-
-          <p className="text-sm text-dark-400">{t('balance.clickToOpenPayment')}</p>
-
-          <button
-            type="button"
-            onClick={handleOpenPayment}
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-success-500 font-bold text-white transition-colors hover:bg-success-400 active:bg-success-600"
-          >
-            <ExternalLinkIcon />
-            <span>{t('balance.openPaymentPage')}</span>
-          </button>
-
-          <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1 rounded-lg border border-dark-700/50 bg-dark-800/70 px-3 py-2">
-              <p className="truncate text-xs text-dark-500">{paymentUrl}</p>
-            </div>
-            <button
-              type="button"
-              onClick={handleCopyUrl}
-              className={`shrink-0 rounded-lg p-2.5 transition-colors ${
-                copied
-                  ? 'bg-success-500/20 text-success-400'
-                  : 'bg-dark-800/70 text-dark-400 hover:bg-dark-700 hover:text-dark-200'
-              }`}
-              title={t('common.copy')}
-            >
-              {copied ? <CheckIcon className="h-5 w-5" /> : <CopyIcon className="h-5 w-5" />}
-            </button>
-          </div>
-        </motion.div>
+        <PaymentLinkDialog
+          paymentUrl={paymentUrl}
+          open={isPaymentDialogOpen}
+          copied={copied}
+          onOpenChange={setIsPaymentDialogOpen}
+          onOpenPayment={handleOpenPayment}
+          onCopy={handleCopyUrl}
+          onCloseFocus={() => paymentLinkButtonRef.current?.focus()}
+        />
       )}
     </motion.div>
   );

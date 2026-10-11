@@ -184,15 +184,25 @@ export function AppHeader({
         }}
       >
         <div
-          className="mx-auto w-full px-4"
+          className="mx-auto w-full px-3 sm:px-4"
+          style={{
+            paddingLeft: isFullscreen
+              ? `${Math.max(safeAreaInset.left, contentSafeAreaInset.left) + 12}px`
+              : undefined,
+            paddingRight: isFullscreen
+              ? `${Math.max(safeAreaInset.right, contentSafeAreaInset.right) + 12}px`
+              : undefined,
+          }}
           onClick={() => mobileMenuOpen && setMobileMenuOpen(false)}
         >
-          <div className="flex h-16 items-center justify-between">
+          <div className="flex h-16 min-w-0 items-center gap-2">
             {/* Logo */}
             <Link
               to="/"
               onClick={() => setMobileMenuOpen(false)}
-              className={cn('flex flex-shrink-0 items-center gap-2.5', !appName && 'mr-4')}
+              className="flex min-w-0 flex-1 items-center gap-2"
+              aria-label={appName || FALLBACK_NAME}
+              title={appName || undefined}
             >
               <div className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-linear-lg border border-dark-700/50 bg-dark-800/80 shadow-md">
                 <span
@@ -216,14 +226,14 @@ export function AppHeader({
                 )}
               </div>
               {appName && (
-                <span className="whitespace-nowrap text-base font-semibold text-dark-100">
+                <span className="hidden min-w-0 truncate text-sm font-semibold text-dark-100 min-[360px]:block sm:text-base">
                   {appName}
                 </span>
               )}
             </Link>
 
             {/* Right side */}
-            <div className="flex items-center gap-1.5">
+            <div className="flex shrink-0 items-center gap-1 sm:gap-1.5">
               {/* Command palette trigger (web only) */}
               {platform !== 'telegram' && (
                 <button
@@ -284,7 +294,7 @@ export function AppHeader({
                   haptic.impact('light');
                   setMobileMenuOpen(!mobileMenuOpen);
                 }}
-                className={`rounded-xl p-2.5 transition-all duration-200 ${
+                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-all duration-200 ${
                   mobileMenuOpen
                     ? 'bg-dark-700 text-dark-100'
                     : 'text-dark-400 hover:bg-dark-800 hover:text-dark-100'
