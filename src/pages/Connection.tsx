@@ -14,6 +14,7 @@ import { withIncyApps } from '../utils/connectionApps';
 import { useAuthStore } from '../store/auth';
 import type { AppConfig, RemnawavePlatformData } from '../types';
 import InstallationGuide from '../components/connection/InstallationGuide';
+import { trackGoal } from '../utils/analytics';
 
 export default function Connection() {
   const { t, i18n } = useTranslation();
@@ -74,6 +75,7 @@ export default function Connection() {
 
   const handleOpenQR = useCallback(() => {
     if (!qrConnectionUrl) return;
+    trackGoal('connection_qr_opened');
     navigate('/connection/qr', {
       replace: !isTelegramWebApp,
       state: {

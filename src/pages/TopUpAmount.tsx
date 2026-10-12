@@ -1,4 +1,5 @@
 import { trackGoalOnce } from '../utils/analytics';
+import { trackPaymentLinkAction } from '../utils/analyticsInteraction';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router';
@@ -186,6 +187,8 @@ export default function TopUpAmount() {
         return;
       }
       try {
+        trackPaymentLinkAction('ready');
+        trackPaymentLinkAction('opened');
         const status = await openInvoice(data.invoice_url);
         if (status === 'paid') {
           void trackGoalOnce('topup_paid', data.invoice_url);
@@ -227,6 +230,7 @@ export default function TopUpAmount() {
     onSuccess: (data) => {
       const redirectUrl = data.payment_url || data.invoice_url;
       if (redirectUrl) {
+        trackPaymentLinkAction('ready');
         // Save payment info for the result page (do BEFORE possible redirect,
         // иначе после window.location.href этот код не выполнится).
         if (method && data.payment_id) {
@@ -259,6 +263,7 @@ export default function TopUpAmount() {
           lowerUrl.startsWith('http://t.me/') ||
           lowerUrl.startsWith('tg://');
         if (method?.open_url_direct && !isTelegramDeepLink) {
+          trackPaymentLinkAction('opened');
           // In the Telegram WebView, same-container navigation to the provider page breaks
           // when it hands off to a bank app via a custom scheme (SBP) — Android shows
           // ERR_UNKNOWN_URL_SCHEME, iOS opens nothing (bug #654272). Open externally there;
@@ -394,6 +399,7 @@ export default function TopUpAmount() {
 
   const handleOpenPayment = () => {
     if (!paymentUrl) return;
+    trackPaymentLinkAction('opened');
     if (paymentUrl.includes('t.me/')) {
       openTelegramLink(paymentUrl);
     } else {
@@ -405,6 +411,7 @@ export default function TopUpAmount() {
     if (!paymentUrl) return;
     try {
       await copyToClipboard(paymentUrl);
+      trackPaymentLinkAction('copied');
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {

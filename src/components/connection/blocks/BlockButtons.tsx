@@ -4,6 +4,7 @@ import { CheckIcon, CopyIcon } from '@/components/icons';
 import type { RemnawaveButtonClient, LocalizedText } from '@/types';
 import { copyToClipboard } from '@/utils/clipboard';
 import { blockButtonClass } from './buttonStyles';
+import { trackConnectionAction } from '@/utils/analyticsInteraction';
 
 // eslint-disable-next-line no-script-url
 const dangerousSchemes = ['javascript:', 'data:', 'vbscript:', 'file:'];
@@ -33,6 +34,8 @@ interface BlockButtonsProps {
   getBaseTranslation: (key: string, i18nKey: string) => string;
   getSvgHtml: (key: string | undefined) => string;
   onOpenDeepLink: (url: string) => void;
+  analyticsPlatform?: string;
+  analyticsApp?: string;
 }
 
 export function BlockButtons({
@@ -46,15 +49,21 @@ export function BlockButtons({
   getBaseTranslation,
   getSvgHtml,
   onOpenDeepLink,
+  analyticsPlatform,
+  analyticsApp,
 }: BlockButtonsProps) {
   const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = useCallback(async (url: string) => {
-    await copyToClipboard(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }, []);
+  const handleCopy = useCallback(
+    async (url: string) => {
+      await copyToClipboard(url);
+      trackConnectionAction('link_copied', analyticsPlatform, analyticsApp);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    },
+    [analyticsPlatform, analyticsApp],
+  );
 
   if (!buttons || buttons.length === 0) return null;
 
@@ -78,7 +87,10 @@ export function BlockButtons({
           return (
             <button
               key={idx}
-              onClick={() => onOpenDeepLink(url)}
+              onClick={() => {
+                trackConnectionAction('import_clicked', analyticsPlatform, analyticsApp);
+                onOpenDeepLink(url);
+              }}
               className={`flex items-center gap-2 ${baseClass}`}
             >
               {btnIcon}
@@ -116,6 +128,9 @@ export function BlockButtons({
           <a
             key={idx}
             href={href}
+            onClick={() =>
+              trackConnectionAction('download_clicked', analyticsPlatform, analyticsApp)
+            }
             target="_blank"
             rel="noopener noreferrer"
             className={`inline-flex items-center gap-2 ${baseClass}`}

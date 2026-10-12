@@ -13,6 +13,7 @@ import { CardsBlock, TimelineBlock, AccordionBlock, MinimalBlock, BlockButtons }
 import type { BlockRendererProps, RenderBlock } from './blocks';
 import TvQuickConnect from './TvQuickConnect';
 import { BackIcon, BookOpenIcon, ChevronIcon } from '@/components/icons';
+import { trackConnectionAction } from '@/utils/analyticsInteraction';
 
 const platformOrder = ['ios', 'android', 'windows', 'macos', 'linux', 'androidTV', 'appleTV'];
 
@@ -135,12 +136,17 @@ export default function InstallationGuide({
         getBaseTranslation={getBaseTranslation}
         getSvgHtml={getSvgHtml}
         onOpenDeepLink={onOpenDeepLink}
+        analyticsPlatform={activePlatformKey || availablePlatforms[0]}
+        analyticsApp={selectedApp?.name}
       />
     ),
     [
       appConfig.subscriptionUrl,
       appConfig.hideLink,
       selectedApp?.deepLink,
+      selectedApp?.name,
+      activePlatformKey,
+      availablePlatforms,
       isLight,
       getLocalizedText,
       getBaseTranslation,
@@ -272,7 +278,10 @@ export default function InstallationGuide({
                     data.apps.find((a) => a.name === selectedApp?.name) ||
                     data.apps.find((a) => a.featured) ||
                     data.apps[0];
+                  trackConnectionAction('platform_selected', newPlatform, app?.name);
                   if (app) setSelectedApp(app);
+                } else {
+                  trackConnectionAction('platform_selected', newPlatform);
                 }
               }}
               className={`appearance-none rounded-xl border py-2 pr-8 text-sm font-medium outline-none transition-colors ${
@@ -303,7 +312,10 @@ export default function InstallationGuide({
             return (
               <button
                 key={app.name + idx}
-                onClick={() => setSelectedApp(app)}
+                onClick={() => {
+                  trackConnectionAction('app_selected', currentPlatformKey, app.name);
+                  setSelectedApp(app);
+                }}
                 className={`relative flex min-w-[calc(50%-0.25rem)] items-center gap-2 overflow-hidden rounded-xl px-4 py-2 text-sm font-medium transition-all active:scale-[0.97] ${
                   isSelected
                     ? isLight
