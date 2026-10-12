@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -28,6 +28,10 @@ import { UsersIcon, EmailIcon, ChevronDownIcon } from '@/components/icons';
 
 export default function Login() {
   const { t } = useTranslation();
+  const translateRef = useRef(t);
+  useEffect(() => {
+    translateRef.current = t;
+  }, [t]);
   const navigate = useNavigate();
   const location = useLocation();
   const {
@@ -191,7 +195,7 @@ export default function Login() {
           .response;
         const detail = response?.data?.detail;
         if (response?.status === 403) {
-          setError(typeof detail === 'string' ? detail : t('auth.loginFailed'));
+          setError(typeof detail === 'string' ? detail : translateRef.current('auth.loginFailed'));
         } else {
           setError('');
           setTelegramRecovery(true);
@@ -211,7 +215,6 @@ export default function Login() {
     telegramRecovery,
     loginWithTelegram,
     navigate,
-    t,
     getReturnUrl,
   ]);
 

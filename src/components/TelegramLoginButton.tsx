@@ -25,6 +25,10 @@ export default function TelegramLoginButton({
   returnUrl,
 }: TelegramLoginButtonProps) {
   const { t } = useTranslation();
+  const translateRef = useRef(t);
+  useEffect(() => {
+    translateRef.current = t;
+  }, [t]);
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement>(null);
   const [oidcLoading, setOidcLoading] = useState(false);
@@ -172,7 +176,6 @@ export default function TelegramLoginButton({
     isOIDC,
     widgetConfig?.oidc_client_id,
     widgetConfig?.request_access,
-    t,
     scriptLoaded,
     handleScriptFailed,
     useDeepLink,
@@ -265,11 +268,7 @@ export default function TelegramLoginButton({
     setDeepLinkRequesting(true);
 
     try {
-      // Consume campaign slug ONCE (first call only).
-      // Clears localStorage on first call, so subsequent retries reuse the ref.
-      // Note: referral code is NOT consumed here — deep link auth is for existing
-      // bot users where referrals don't apply. Leaving it in localStorage allows
-      // other auth methods (OIDC, widget) to pick it up if the user switches paths.
+      // Capture once; successful authentication consumes the campaign in the store.
       if (!codesConsumedRef.current) {
         capturedCampaignRef.current = getPendingCampaignSlug();
         codesConsumedRef.current = true;
@@ -315,22 +314,22 @@ export default function TelegramLoginButton({
         onExpired: () => {
           setDeepLinkPolling(false);
           setDeepLinkToken(null);
-          setDeepLinkError(t('auth.deepLinkExpired'));
+          setDeepLinkError(translateRef.current('auth.deepLinkExpired'));
         },
         onError: () => {
           setDeepLinkPolling(false);
           setDeepLinkToken(null);
-          setDeepLinkError(t('common.error'));
+          setDeepLinkError(translateRef.current('common.error'));
         },
       });
     } catch {
       if (!controller.signal.aborted && mountedRef.current) {
-        setDeepLinkError(t('common.error'));
+        setDeepLinkError(translateRef.current('common.error'));
       }
     } finally {
       if (!controller.signal.aborted && mountedRef.current) setDeepLinkRequesting(false);
     }
-  }, [botUsername, loginWithDeepLink, finishLogin, t]);
+  }, [botUsername, loginWithDeepLink, finishLogin]);
 
   // Start once when entering recovery, not again on every error or expired token.
   useEffect(() => {

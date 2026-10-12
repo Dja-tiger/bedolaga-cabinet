@@ -47,6 +47,7 @@ i18n
 
     react: {
       useSuspense: false,
+      bindI18nStore: 'added',
     },
 
     showSupportNotice: false,
