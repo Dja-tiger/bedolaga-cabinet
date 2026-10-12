@@ -50,9 +50,11 @@ export function trackAnalyticsResponse(response: AnalyticsResponse): void {
     data.success === true
   ) {
     const renewal =
-      path === '/cabinet/subscription/purchase-tariff' &&
-      isTariffRenewal(response.config.data) &&
-      data.was_trial_conversion !== true;
+      data.was_trial_conversion !== true &&
+      (data.purchase_type === 'renewal' ||
+        (data.purchase_type !== 'first_purchase' &&
+          path === '/cabinet/subscription/purchase-tariff' &&
+          isTariffRenewal(response.config.data)));
     trackGoal(renewal ? 'subscription_renewed' : 'subscription_purchased');
     if (data.was_trial_conversion === true) trackGoal('trial_converted');
   }

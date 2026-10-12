@@ -5,6 +5,7 @@ import { setYandexCid } from '../utils/yandexCid';
 import { useLocation } from 'react-router';
 import { configureMetrika, trackPage } from '../utils/metrika';
 import { configureGoogleAnalytics, trackGooglePage } from '../utils/googleAnalytics';
+import { trackGoal } from '../utils/analytics';
 
 /**
  * Fetches analytics counter settings from the API and dynamically
@@ -100,19 +101,11 @@ function syncYandexCid(counterId: string) {
   }, 3000);
 }
 
-export function fireAnalyticsEvent(goalName: string, params?: Record<string, unknown>) {
-  const w = window as unknown as Record<string, unknown>;
-  const ym = w.ym as ((...args: unknown[]) => void) | undefined;
-  if (typeof ym === 'function') {
-    try {
-      const counterId = localStorage.getItem('ym_counter_id');
-      if (counterId && /^\d{1,15}$/.test(counterId)) {
-        ym(Number(counterId), 'reachGoal', goalName, params);
-      }
-    } catch {
-      /* ignore */
-    }
-  }
+export function fireAnalyticsEvent(
+  goalName: string,
+  params?: Record<string, string | number | boolean>,
+) {
+  trackGoal(goalName, params);
 }
 
 // Re-export the canonical CID accessor from utils for back-compat with

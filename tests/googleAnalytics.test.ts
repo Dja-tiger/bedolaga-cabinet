@@ -35,6 +35,20 @@ afterEach(() => vi.unstubAllGlobals());
 
 const events = (name: string) => calls.filter((c) => c[0] === 'event' && c[1] === name);
 
+test('checkout click reaches GA4 when Yandex Metrika is disabled', async () => {
+  vi.doMock('../src/api/branding', () => ({ brandingApi: {} }));
+  const { configureMetrika } = await import('../src/utils/metrika');
+  const { configureGoogleAnalytics, trackGooglePage } =
+    await import('../src/utils/googleAnalytics');
+  const { fireAnalyticsEvent } = await import('../src/hooks/useAnalyticsCounters');
+  configureMetrika('');
+  configureGoogleAnalytics(ID);
+  trackGooglePage('/buy/demo');
+  fireAnalyticsEvent('purchase_click', { tariff_id: 7 });
+  assert.equal(events('purchase_click').length, 1);
+  assert.equal((events('purchase_click')[0][2] as Record<string, unknown>).send_to, ID);
+});
+
 test('GA4 and Ads share one tag; business events target only GA4 and URLs are masked', async () => {
   const ga = await import('../src/utils/googleAnalytics');
   ga.trackGoogleGoal('early_event');
@@ -79,6 +93,27 @@ test('GA4 alone records successful purchases and renewals using the existing res
   response({}, { success: true }, 500);
   assert.equal(events('subscription_purchased').length, 2);
   assert.equal(events('subscription_renewed').length, 1);
+  assert.equal(events('trial_converted').length, 1);
+  assert.ok(!JSON.stringify(calls).includes('subscription_id'));
+});
+
+test('server purchase type takes precedence over request IDs in both purchase modes', async () => {
+  const ga = await import('../src/utils/googleAnalytics');
+  const { trackAnalyticsResponse } = await import('../src/utils/analyticsResponse');
+  ga.configureGoogleAnalytics(ID);
+  ga.trackGooglePage('/subscription/purchase');
+  const response = (endpoint: string, request: unknown, data: Record<string, unknown>) =>
+    trackAnalyticsResponse({
+      status: 200,
+      config: { url: '/cabinet/subscription/' + endpoint, method: 'post', data: request },
+      data: { success: true, ...data },
+    });
+  response('purchase-tariff', {}, { purchase_type: 'renewal' });
+  response('purchase', {}, { purchase_type: 'renewal' });
+  response('purchase-tariff', { subscription_id: 42 }, { purchase_type: 'first_purchase' });
+  response('purchase-tariff', {}, { purchase_type: 'first_purchase', was_trial_conversion: true });
+  assert.equal(events('subscription_renewed').length, 2);
+  assert.equal(events('subscription_purchased').length, 2);
   assert.equal(events('trial_converted').length, 1);
   assert.ok(!JSON.stringify(calls).includes('subscription_id'));
 });
