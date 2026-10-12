@@ -187,6 +187,8 @@
     "loginFailed": "登录失败",
     "telegramWidgetBlocked": "Telegram登录小部件不可用。请使用机器人登录：",
     "openBotToLogin": "打开机器人登录",
+    "loginViaBot": "通过机器人登录",
+    "confirmInBot": "在Telegram中确认登录",
     "waitingForConfirmation": "等待确认...",
     "deepLinkExpired": "链接已过期，请重试。",
     "tryAgain": "重试",

@@ -195,6 +195,8 @@
     "loginFailed": "Login Failed",
     "telegramWidgetBlocked": "Telegram login widget is unavailable. Use the bot to sign in:",
     "openBotToLogin": "Open bot to sign in",
+    "loginViaBot": "Sign in through the bot",
+    "confirmInBot": "Confirm sign-in in Telegram",
     "waitingForConfirmation": "Waiting for confirmation...",
     "deepLinkExpired": "Link expired. Please try again.",
     "tryAgain": "Try Again",

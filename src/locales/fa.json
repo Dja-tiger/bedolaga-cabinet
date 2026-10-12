@@ -187,6 +187,8 @@
     "loginFailed": "ورود ناموفق",
     "telegramWidgetBlocked": "ویجت ورود تلگرام در دسترس نیست. از طریق ربات وارد شوید:",
     "openBotToLogin": "باز کردن ربات برای ورود",
+    "loginViaBot": "ورود از طریق ربات",
+    "confirmInBot": "ورود را در تلگرام تأیید کنید",
     "waitingForConfirmation": "در انتظار تایید...",
     "deepLinkExpired": "لینک منقضی شده است. لطفا دوباره تلاش کنید.",
     "tryAgain": "تلاش مجدد",

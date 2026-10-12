@@ -198,6 +198,8 @@
     "loginFailed": "Ошибка входа",
     "telegramWidgetBlocked": "Виджет входа через Telegram недоступен. Войдите через бота:",
     "openBotToLogin": "Открыть бота для входа",
+    "loginViaBot": "Войти через бота",
+    "confirmInBot": "Подтвердите вход в Telegram",
     "waitingForConfirmation": "Ожидание подтверждения...",
     "deepLinkExpired": "Ссылка истекла. Попробуйте снова.",
     "tryAgain": "Попробовать снова",

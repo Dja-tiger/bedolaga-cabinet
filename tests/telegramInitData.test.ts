@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import axios from 'axios';
 
 const retrieveRawInitData = vi.hoisted(() => vi.fn<() => string | undefined>());
 
@@ -10,7 +11,7 @@ vi.mock('@telegram-apps/sdk-react', () => ({
   retrieveLaunchParams: () => ({ tgWebAppPlatform: 'ios' }),
 }));
 
-import { getTelegramInitData } from '../src/utils/telegramInitData';
+import { getTelegramInitData, needsTelegramAuthRecovery } from '../src/utils/telegramInitData';
 import { getTelegramInitData as getLoginInitData } from '../src/hooks/useTelegramSDK';
 import { clearStaleSessionIfNeeded, tokenStorage } from '../src/utils/token';
 import { authApi } from '../src/api/auth';
@@ -21,7 +22,7 @@ function initData(authDate: number, userId = 1): string {
   return `user=${user}&auth_date=${authDate}&signature=s&hash=h${authDate}`;
 }
 
-const OLD = initData(1_700_000_000);
+const OLD = initData(1_700_000_000, 2);
 const FRESH = initData(1_780_000_000, 2);
 
 function setBridge(value?: string): void {
@@ -43,6 +44,7 @@ beforeEach(() => {
   vi.stubGlobal('sessionStorage', memoryStorage());
   vi.stubGlobal('localStorage', memoryStorage());
   vi.stubGlobal('document', { cookie: 'csrf_token=test-csrf' });
+  tokenStorage.clearTokens();
 });
 
 afterEach(() => {
@@ -50,6 +52,40 @@ afterEach(() => {
 });
 
 describe('fresh Telegram init data', () => {
+  it('rejects a late authenticated API response after switching sessions', async () => {
+    let reply!: () => void;
+    const adapter = apiClient.defaults.adapter;
+    apiClient.defaults.adapter = (config) =>
+      new Promise((resolve) => {
+        reply = () =>
+          resolve({
+            data: { oldAccount: true },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config,
+          });
+      });
+    tokenStorage.setTokens('old-access', 'old-refresh');
+    // Use a structurally valid access token to avoid invoking refresh in this test.
+    tokenStorage.setAccessToken(
+      `e30.${btoa(JSON.stringify({ exp: Date.now() / 1000 + 3600 }))}.test`,
+    );
+    const pending = apiClient.get('/cabinet/auth/me').catch((error: unknown) => error);
+    await vi.waitFor(() => expect(reply).toBeTypeOf('function'));
+    tokenStorage.setTokens('new-access', 'new-refresh');
+    reply();
+    try {
+      expect(axios.isCancel(await pending)).toBe(true);
+    } finally {
+      apiClient.defaults.adapter = adapter;
+    }
+  });
+  it('does not select a cached SDK launch from another account', () => {
+    setBridge(OLD);
+    retrieveRawInitData.mockReturnValue(initData(1_780_000_000, 99));
+    expect(getTelegramInitData()).toBe(OLD);
+  });
   it('uses the bridge when the SDK returns an old cached launch', () => {
     setBridge(FRESH);
     retrieveRawInitData.mockReturnValue(OLD);
@@ -243,5 +279,41 @@ describe('authentication consumers', () => {
     expect(offenders).toEqual([]);
     const main = readFileSync(join(srcDir, 'main.tsx'), 'utf8');
     expect(main).toContain('clearStaleSessionIfNeeded(getTelegramInitData())');
+  });
+});
+
+describe('expired launch recovery', () => {
+  const now = Date.UTC(2026, 9, 12);
+  const seconds = now / 1000;
+
+  it('recovers when BOTH sources have the same 90-day-old launch', () => {
+    const stale = initData(seconds - 90 * 86400);
+    setBridge(stale);
+    retrieveRawInitData.mockReturnValue(stale);
+    expect(needsTelegramAuthRecovery(getTelegramInitData(), now)).toBe(true);
+  });
+
+  it('keeps automatic login when one live source is fresh', () => {
+    setBridge(initData(seconds - 90 * 86400));
+    retrieveRawInitData.mockReturnValue(initData(seconds));
+    expect(needsTelegramAuthRecovery(getTelegramInitData(), now)).toBe(false);
+  });
+
+  it.each([
+    null,
+    '',
+    'hash=h',
+    'auth_date=invalid&hash=h',
+    'auth_date=1.5&hash=h',
+    `auth_date=${seconds}`,
+  ])('recovers from missing or malformed launch data: %s', (raw) => {
+    expect(needsTelegramAuthRecovery(raw, now)).toBe(true);
+  });
+
+  it('matches the server age boundary and clock tolerance', () => {
+    expect(needsTelegramAuthRecovery(initData(seconds - 30 * 86400), now)).toBe(false);
+    expect(needsTelegramAuthRecovery(initData(seconds - 30 * 86400 - 1), now)).toBe(true);
+    expect(needsTelegramAuthRecovery(initData(seconds + 300), now)).toBe(false);
+    expect(needsTelegramAuthRecovery(initData(seconds + 301), now)).toBe(true);
   });
 });

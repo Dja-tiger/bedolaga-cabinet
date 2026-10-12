@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
+import axios from 'axios';
 import type { CampaignBonusInfo, RegisterResponse, User } from '../types';
 import { authApi } from '../api/auth';
 import { apiClient } from '../api/client';
@@ -18,8 +19,12 @@ import {
   isTokenValid,
   tokenRefreshManager,
   restoreRefreshTokenFromCloud,
+  getSessionGeneration,
+  assertSessionCurrent,
 } from '../utils/token';
+import { isTemporaryAuthFailure } from '../utils/authFailure';
 import { usePermissionStore } from './permissions';
+import { useBlockingStore } from './blocking';
 
 export interface TelegramWidgetData {
   id: number;
@@ -58,7 +63,11 @@ interface AuthState {
     state: string,
     deviceId?: string | null,
   ) => Promise<void>;
-  loginWithDeepLink: (token: string, campaignSlug?: string | null) => Promise<void>;
+  loginWithDeepLink: (
+    token: string,
+    campaignSlug?: string | null,
+    signal?: AbortSignal,
+  ) => Promise<void>;
   registerWithEmail: (
     email: string,
     password: string,
@@ -72,6 +81,8 @@ const initState = {
   isInitializing: false,
   isInitialized: false,
 };
+
+export const authInitializationNeedsRetry = (): boolean => !initState.isInitialized;
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -123,6 +134,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       checkAdminStatus: async () => {
+        const generation = getSessionGeneration();
         try {
           const token = tokenStorage.getAccessToken();
           if (!token || !isTokenValid(token)) {
@@ -131,6 +143,7 @@ export const useAuthStore = create<AuthState>()(
             return;
           }
           const response = await apiClient.get<{ is_admin: boolean }>('/cabinet/auth/me/is-admin');
+          assertSessionCurrent(generation);
           set({ isAdmin: response.data.is_admin });
           if (response.data.is_admin) {
             await usePermissionStore.getState().fetchPermissions();
@@ -138,14 +151,17 @@ export const useAuthStore = create<AuthState>()(
             usePermissionStore.getState().reset();
           }
         } catch {
+          if (generation !== getSessionGeneration()) return;
           set({ isAdmin: false });
           usePermissionStore.getState().reset();
         }
       },
 
       refreshUser: async () => {
+        const generation = getSessionGeneration();
         try {
           const user = await authApi.getMe();
+          assertSessionCurrent(generation);
           set({ user });
         } catch {}
       },
@@ -159,19 +175,14 @@ export const useAuthStore = create<AuthState>()(
           return initState.promise;
         }
 
-        // Three identical state shapes appeared inline 6 times — extract them
-        // here (closure-scoped to keep auth state internal). Behaviour is
-        // byte-for-byte identical to the previous inline blocks; the only
-        // change is that mistypes can't drift between branches.
-        // accessToken is typed `string | null` to match the previous inline
-        // set() shape and AuthState's field; in practice it's only called
-        // along the post-isTokenValid / post-refresh branches where the
-        // value is guaranteed non-null at runtime.
+        const generation = getSessionGeneration();
+        let retryInitialization = false;
         const applySession = (
           accessToken: string | null,
           refreshTokenValue: string,
           user: User,
         ): void => {
+          assertSessionCurrent(generation);
           set({
             accessToken,
             refreshToken: refreshTokenValue,
@@ -181,6 +192,7 @@ export const useAuthStore = create<AuthState>()(
           });
         };
         const clearSession = (): void => {
+          assertSessionCurrent(generation);
           tokenStorage.clearTokens();
           set({
             accessToken: null,
@@ -198,13 +210,14 @@ export const useAuthStore = create<AuthState>()(
 
             tokenStorage.migrateFromLocalStorage();
 
-            const accessToken = tokenStorage.getAccessToken();
+            let accessToken = tokenStorage.getAccessToken();
             let refreshToken = tokenStorage.getRefreshToken();
 
             if (!refreshToken) {
               // localStorage may have been wiped by the Telegram WebView; try to
               // recover the refresh token from Telegram CloudStorage before giving up.
               refreshToken = await restoreRefreshTokenFromCloud();
+              assertSessionCurrent(generation);
               if (!refreshToken) {
                 set({ isLoading: false, isAuthenticated: false });
                 return;
@@ -213,47 +226,59 @@ export const useAuthStore = create<AuthState>()(
 
             if (!isTokenValid(accessToken)) {
               const newToken = await tokenRefreshManager.refreshAccessToken();
+              assertSessionCurrent(generation);
               if (newToken) {
-                const user = await authApi.getMe();
-                await get().checkAdminStatus();
-                applySession(newToken, refreshToken, user);
+                accessToken = newToken;
               } else if (tokenRefreshManager.lastFailureWasTransport) {
-                // Backend unreachable, not a rejected token — keep the session
-                // (don't wipe tokens) so the ServiceUnavailableScreen can resume
-                // once the backend returns. Just stop the bootstrap loader.
-                set({ isLoading: false });
+                retryInitialization = true;
+                if (!useBlockingStore.getState().blockingType) {
+                  useBlockingStore.getState().setBackendUnavailable();
+                }
+                return;
               } else {
                 clearSession();
+                return;
               }
-              return;
             }
 
             try {
               const user = await authApi.getMe();
               await get().checkAdminStatus();
               applySession(accessToken, refreshToken, user);
-            } catch {
+            } catch (error) {
+              assertSessionCurrent(generation);
+              if (isTemporaryAuthFailure(error) || axios.isCancel(error)) throw error;
+              if (!axios.isAxiosError(error) || error.response?.status !== 401) throw error;
               const newToken = await tokenRefreshManager.refreshAccessToken();
+              assertSessionCurrent(generation);
               if (newToken) {
-                try {
-                  const user = await authApi.getMe();
-                  await get().checkAdminStatus();
-                  applySession(newToken, refreshToken, user);
-                } catch {
-                  clearSession();
-                }
+                const user = await authApi.getMe();
+                await get().checkAdminStatus();
+                applySession(newToken, refreshToken, user);
               } else if (tokenRefreshManager.lastFailureWasTransport) {
-                // Backend unreachable, not a rejected token — keep the session
-                // (don't wipe tokens) so the ServiceUnavailableScreen can resume
-                // once the backend returns. Just stop the bootstrap loader.
-                set({ isLoading: false });
+                retryInitialization = true;
+                if (!useBlockingStore.getState().blockingType) {
+                  useBlockingStore.getState().setBackendUnavailable();
+                }
               } else {
                 clearSession();
               }
             }
+          } catch (error) {
+            if (axios.isCancel(error) || generation !== getSessionGeneration()) return;
+            if (isTemporaryAuthFailure(error)) {
+              // An unavailable profile/refresh endpoint is not an invalid session.
+              retryInitialization = true;
+              if (!useBlockingStore.getState().blockingType) {
+                useBlockingStore.getState().setBackendUnavailable();
+              }
+            } else {
+              clearSession();
+            }
           } finally {
+            set({ isLoading: false });
             initState.isInitializing = false;
-            initState.isInitialized = true;
+            initState.isInitialized = !retryInitialization;
             initState.promise = null;
           }
         })();
@@ -262,9 +287,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       loginWithTelegram: async (initData) => {
+        const generation = getSessionGeneration();
         const campaignSlug = getPendingCampaignSlug();
         const referralCode = getPendingReferralCode();
         const response = await authApi.loginTelegram(initData, campaignSlug, referralCode);
+        assertSessionCurrent(generation);
         // Clear only after successful auth — retry keeps the slugs
         consumeCampaignSlug();
         consumeReferralCode();
@@ -280,9 +307,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       loginWithTelegramWidget: async (data) => {
+        const generation = getSessionGeneration();
         const campaignSlug = getPendingCampaignSlug();
         const referralCode = getPendingReferralCode();
         const response = await authApi.loginTelegramWidget(data, campaignSlug, referralCode);
+        assertSessionCurrent(generation);
         consumeCampaignSlug();
         consumeReferralCode();
         tokenStorage.setTokens(response.access_token, response.refresh_token);
@@ -297,9 +326,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       loginWithTelegramOIDC: async (idToken) => {
+        const generation = getSessionGeneration();
         const campaignSlug = getPendingCampaignSlug();
         const referralCode = getPendingReferralCode();
         const response = await authApi.loginTelegramOIDC(idToken, campaignSlug, referralCode);
+        assertSessionCurrent(generation);
         consumeCampaignSlug();
         consumeReferralCode();
         tokenStorage.setTokens(response.access_token, response.refresh_token);
@@ -314,9 +345,11 @@ export const useAuthStore = create<AuthState>()(
       },
 
       loginWithEmail: async (email, password) => {
+        const generation = getSessionGeneration();
         const campaignSlug = getPendingCampaignSlug();
         const referralCode = getPendingReferralCode();
         const response = await authApi.loginEmail(email, password, campaignSlug, referralCode);
+        assertSessionCurrent(generation);
         consumeCampaignSlug();
         consumeReferralCode();
         tokenStorage.setTokens(response.access_token, response.refresh_token);
@@ -331,6 +364,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       loginWithOAuth: async (provider, code, state, deviceId) => {
+        const generation = getSessionGeneration();
         const campaignSlug = getPendingCampaignSlug();
         const referralCode = getPendingReferralCode();
         const response = await authApi.oauthCallback(
@@ -341,6 +375,7 @@ export const useAuthStore = create<AuthState>()(
           campaignSlug,
           referralCode,
         );
+        assertSessionCurrent(generation);
         consumeCampaignSlug();
         consumeReferralCode();
         tokenStorage.setTokens(response.access_token, response.refresh_token);
@@ -354,8 +389,11 @@ export const useAuthStore = create<AuthState>()(
         await get().checkAdminStatus();
       },
 
-      loginWithDeepLink: async (token, campaignSlug) => {
-        const response = await authApi.pollDeepLinkToken(token, campaignSlug);
+      loginWithDeepLink: async (token, campaignSlug, signal) => {
+        const generation = getSessionGeneration();
+        const response = await authApi.pollDeepLinkToken(token, campaignSlug, signal);
+        assertSessionCurrent(generation);
+        if (signal?.aborted) throw new axios.CanceledError('Authentication cancelled');
         if (!response.access_token || !response.refresh_token) {
           throw new Error('Invalid auth response: missing tokens');
         }
@@ -387,6 +425,25 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'cabinet-auth',
+      storage: createJSONStorage(() => ({
+        getItem: (name) => {
+          try {
+            return localStorage.getItem(name);
+          } catch {
+            return null;
+          }
+        },
+        setItem: (name, value) => {
+          try {
+            localStorage.setItem(name, value);
+          } catch {}
+        },
+        removeItem: (name) => {
+          try {
+            localStorage.removeItem(name);
+          } catch {}
+        },
+      })),
       partialize: (state) => ({
         user: state.user,
       }),
