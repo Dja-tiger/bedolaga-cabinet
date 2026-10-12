@@ -301,7 +301,9 @@ export const authApi = {
     return response.data;
   },
 
-  requestDeepLinkToken: async (): Promise<{
+  requestDeepLinkToken: async (
+    signal?: AbortSignal,
+  ): Promise<{
     token: string;
     bot_username: string;
     expires_in: number;
@@ -310,11 +312,15 @@ export const authApi = {
       token: string;
       bot_username: string;
       expires_in: number;
-    }>('/cabinet/auth/deeplink/request');
+    }>('/cabinet/auth/deeplink/request', undefined, { signal, timeout: 10000 });
     return response.data;
   },
 
-  pollDeepLinkToken: async (token: string, campaignSlug?: string | null): Promise<AuthResponse> => {
+  pollDeepLinkToken: async (
+    token: string,
+    campaignSlug?: string | null,
+    signal?: AbortSignal,
+  ): Promise<AuthResponse> => {
     // validateStatus: only treat 200 as success.
     // Server returns 202 for "pending" and 410 for "expired" —
     // these must reject so the polling catch-block can handle them.
@@ -324,7 +330,7 @@ export const authApi = {
     const response = await apiClient.post<AuthResponse>(
       '/cabinet/auth/deeplink/poll',
       { token, campaign_slug: campaignSlug || undefined },
-      { validateStatus: (status) => status === 200 },
+      { validateStatus: (status) => status === 200, signal, timeout: 10000 },
     );
     return response.data;
   },

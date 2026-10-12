@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ComponentType } from 'react';
 import { Routes, Route, Navigate, useLocation, useParams } from 'react-router';
 import { useAuthStore } from './store/auth';
+import { reloadAfterChunkFailure } from './utils/chunkReload';
 
 /**
  * Wrapper around React.lazy that auto-reloads the page when a chunk fails to load
@@ -9,12 +10,7 @@ import { useAuthStore } from './store/auth';
 function lazyWithRetry<T extends ComponentType<unknown>>(factory: () => Promise<{ default: T }>) {
   return lazy(() =>
     factory().catch(() => {
-      const key = 'chunk_reload_ts';
-      const last = Number(sessionStorage.getItem(key) || '0');
-      if (Date.now() - last > 30_000) {
-        sessionStorage.setItem(key, String(Date.now()));
-        window.location.reload();
-      }
+      reloadAfterChunkFailure();
       // Re-throw so ErrorBoundary catches it if reload guard prevents loop
       return factory();
     }),

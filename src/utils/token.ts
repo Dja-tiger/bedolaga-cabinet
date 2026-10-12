@@ -7,6 +7,16 @@ import {
 import { isInTelegramWebApp } from '../hooks/useTelegramSDK';
 import { API } from '../config/constants';
 import { reportPossibleBackendDown } from '../api/health';
+import { isTemporaryAuthFailure } from './authFailure';
+
+let sessionGeneration = 0;
+let memoryAccessToken: string | null = null;
+let memoryRefreshToken: string | null = null;
+export const getSessionGeneration = (): number => sessionGeneration;
+
+export function assertSessionCurrent(generation: number): void {
+  if (generation !== sessionGeneration) throw new axios.CanceledError('Session changed');
+}
 
 const TOKEN_KEYS = {
   ACCESS: 'access_token',
@@ -20,27 +30,33 @@ const TOKEN_KEYS = {
 // token to per-user CloudStorage lets initialize() recover the session instead of
 // dropping the user to the login screen. Best-effort: failures fall back to localStorage.
 const CLOUD_REFRESH_KEY = TOKEN_KEYS.REFRESH;
+const CLOUD_TIMEOUT_MS = 2500;
 
 function mirrorRefreshTokenToCloud(refreshToken: string): void {
   if (!isInTelegramWebApp()) return;
   try {
-    void setCloudStorageItem(CLOUD_REFRESH_KEY, refreshToken).catch(() => {});
+    void setCloudStorageItem(CLOUD_REFRESH_KEY, refreshToken, { timeout: CLOUD_TIMEOUT_MS }).catch(
+      () => {},
+    );
   } catch {}
 }
 
 function removeRefreshTokenFromCloud(): void {
   if (!isInTelegramWebApp()) return;
   try {
-    void deleteCloudStorageItem(CLOUD_REFRESH_KEY).catch(() => {});
+    void deleteCloudStorageItem(CLOUD_REFRESH_KEY, { timeout: CLOUD_TIMEOUT_MS }).catch(() => {});
   } catch {}
 }
 
 export async function restoreRefreshTokenFromCloud(): Promise<string | null> {
   if (!isInTelegramWebApp()) return null;
+  const generation = sessionGeneration;
   try {
-    const value = await getCloudStorageItem(CLOUD_REFRESH_KEY);
+    const value = await getCloudStorageItem(CLOUD_REFRESH_KEY, { timeout: CLOUD_TIMEOUT_MS });
+    if (generation !== sessionGeneration) return tokenStorage.getRefreshToken();
     const token = value || null;
     if (token) {
+      memoryRefreshToken = token;
       try {
         localStorage.setItem(TOKEN_KEYS.REFRESH, token);
       } catch {}
@@ -88,31 +104,45 @@ export function isTokenValid(token: string | null): boolean {
 
 export const tokenStorage = {
   getAccessToken(): string | null {
+    if (memoryAccessToken) return memoryAccessToken;
     try {
-      return sessionStorage.getItem(TOKEN_KEYS.ACCESS);
+      return sessionStorage.getItem(TOKEN_KEYS.ACCESS) || memoryAccessToken;
     } catch {
-      return null;
+      return memoryAccessToken;
     }
   },
 
   getRefreshToken(): string | null {
+    if (memoryRefreshToken) return memoryRefreshToken;
     try {
-      return localStorage.getItem(TOKEN_KEYS.REFRESH) || sessionStorage.getItem(TOKEN_KEYS.REFRESH);
+      return (
+        localStorage.getItem(TOKEN_KEYS.REFRESH) ||
+        sessionStorage.getItem(TOKEN_KEYS.REFRESH) ||
+        memoryRefreshToken
+      );
     } catch {
-      return null;
+      return memoryRefreshToken;
     }
   },
 
   setTokens(accessToken: string, refreshToken: string): void {
+    sessionGeneration++;
+    memoryAccessToken = accessToken;
+    memoryRefreshToken = refreshToken;
     try {
       sessionStorage.setItem(TOKEN_KEYS.ACCESS, accessToken);
-      localStorage.setItem(TOKEN_KEYS.REFRESH, refreshToken);
-      sessionStorage.removeItem(TOKEN_KEYS.REFRESH);
-      mirrorRefreshTokenToCloud(refreshToken);
     } catch {}
+    try {
+      localStorage.setItem(TOKEN_KEYS.REFRESH, refreshToken);
+    } catch {}
+    try {
+      sessionStorage.removeItem(TOKEN_KEYS.REFRESH);
+    } catch {}
+    mirrorRefreshTokenToCloud(refreshToken);
   },
 
   setAccessToken(accessToken: string): void {
+    memoryAccessToken = accessToken;
     try {
       sessionStorage.setItem(TOKEN_KEYS.ACCESS, accessToken);
     } catch {
@@ -121,15 +151,18 @@ export const tokenStorage = {
   },
 
   clearTokens(): void {
-    try {
-      sessionStorage.removeItem(TOKEN_KEYS.ACCESS);
-      sessionStorage.removeItem(TOKEN_KEYS.REFRESH);
-      sessionStorage.removeItem(TOKEN_KEYS.USER);
-      localStorage.removeItem(TOKEN_KEYS.ACCESS);
-      localStorage.removeItem(TOKEN_KEYS.REFRESH);
-      localStorage.removeItem(TOKEN_KEYS.USER);
-      removeRefreshTokenFromCloud();
-    } catch {}
+    sessionGeneration++;
+    memoryAccessToken = null;
+    memoryRefreshToken = null;
+    for (const key of [TOKEN_KEYS.ACCESS, TOKEN_KEYS.REFRESH, TOKEN_KEYS.USER]) {
+      try {
+        sessionStorage.removeItem(key);
+      } catch {}
+      try {
+        localStorage.removeItem(key);
+      } catch {}
+    }
+    removeRefreshTokenFromCloud();
   },
 
   migrateFromLocalStorage(): void {
@@ -185,6 +218,9 @@ export function clearStaleSessionIfNeeded(freshInitData: string | null): void {
     const storedTgUserId = localStorage.getItem(TG_USER_ID_KEY);
 
     if (storedTgUserId && currentTgUserId && storedTgUserId !== currentTgUserId) {
+      sessionGeneration++;
+      memoryAccessToken = null;
+      memoryRefreshToken = null;
       sessionStorage.removeItem(TOKEN_KEYS.ACCESS);
       sessionStorage.removeItem(TOKEN_KEYS.REFRESH);
       sessionStorage.removeItem(TOKEN_KEYS.USER);
@@ -203,13 +239,13 @@ export function clearStaleSessionIfNeeded(freshInitData: string | null): void {
 
 class TokenRefreshManager {
   private isRefreshing = false;
+  private refreshGeneration = -1;
   private refreshPromise: Promise<string | null> | null = null;
   private subscribers: ((token: string | null) => void)[] = [];
   private refreshEndpoint = '/api/cabinet/auth/refresh';
 
   /**
-   * True when the most recent refresh failed at the TRANSPORT level (backend
-   * unreachable / timeout) rather than because the refresh token was rejected.
+   * True for temporary failures (network, 429, or 5xx), not rejected credentials.
    * Callers read this right after a null `refreshAccessToken()` to decide whether
    * to destroy the session (rejected token) or KEEP it so the recoverable
    * ServiceUnavailableScreen can resume once the backend returns. Synchronously
@@ -223,7 +259,7 @@ class TokenRefreshManager {
   }
 
   async refreshAccessToken(): Promise<string | null> {
-    if (this.isRefreshing && this.refreshPromise) {
+    if (this.isRefreshing && this.refreshPromise && this.refreshGeneration === sessionGeneration) {
       return this.refreshPromise;
     }
 
@@ -235,20 +271,24 @@ class TokenRefreshManager {
     }
 
     this.isRefreshing = true;
-    this.refreshPromise = this.doRefresh(refreshToken);
+    this.refreshGeneration = sessionGeneration;
+    const promise = this.doRefresh(refreshToken, sessionGeneration);
+    this.refreshPromise = promise;
 
     try {
-      const result = await this.refreshPromise;
+      const result = await promise;
       this.notifySubscribers(result);
       return result;
     } finally {
-      this.isRefreshing = false;
-      this.refreshPromise = null;
+      if (this.refreshPromise === promise) {
+        this.isRefreshing = false;
+        this.refreshPromise = null;
+      }
     }
   }
 
   // Uses plain axios (not apiClient) to avoid circular dependency
-  private async doRefresh(refreshToken: string): Promise<string | null> {
+  private async doRefresh(refreshToken: string, generation: number): Promise<string | null> {
     try {
       const response = await axios.post<{ access_token?: string }>(
         this.refreshEndpoint,
@@ -259,6 +299,7 @@ class TokenRefreshManager {
         { headers: { 'Content-Type': 'application/json' }, timeout: API.TIMEOUT_MS },
       );
 
+      assertSessionCurrent(generation);
       const newAccessToken = response.data.access_token;
 
       if (newAccessToken) {
@@ -268,14 +309,13 @@ class TokenRefreshManager {
 
       return null;
     } catch (err) {
-      // This bare-axios call bypasses the apiClient interceptor, so a dead
-      // backend on the refresh-only bootstrap path would otherwise be swallowed
-      // here and silently fall through to a login redirect. Distinguish a
-      // transport-level failure (no response) from an invalid/expired token (a
-      // 4xx response) and surface the service-unavailable screen for the former.
-      if (axios.isAxiosError(err) && !err.response) {
+      assertSessionCurrent(generation);
+      if (axios.isCancel(err)) throw err;
+      if (isTemporaryAuthFailure(err)) {
         this.lastFailureWasTransport = true;
-        void reportPossibleBackendDown();
+        if (axios.isAxiosError(err) && err.response?.status !== 429) {
+          void reportPossibleBackendDown();
+        }
       }
       return null;
     }
@@ -313,16 +353,22 @@ export function saveReturnUrl(): void {
   if (typeof window !== 'undefined') {
     const currentPath = window.location.pathname + window.location.search;
     if (currentPath && currentPath !== '/login') {
-      sessionStorage.setItem(RETURN_URL_KEY, currentPath);
+      try {
+        sessionStorage.setItem(RETURN_URL_KEY, currentPath);
+      } catch {}
     }
   }
 }
 
 export function getAndClearReturnUrl(): string | null {
   if (typeof window !== 'undefined') {
-    const url = sessionStorage.getItem(RETURN_URL_KEY);
-    sessionStorage.removeItem(RETURN_URL_KEY);
-    return url;
+    try {
+      const url = sessionStorage.getItem(RETURN_URL_KEY);
+      sessionStorage.removeItem(RETURN_URL_KEY);
+      return url;
+    } catch {
+      return null;
+    }
   }
   return null;
 }

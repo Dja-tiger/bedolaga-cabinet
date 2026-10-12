@@ -5,6 +5,8 @@ import {
   isTokenExpired,
   tokenRefreshManager,
   safeRedirectToLogin,
+  getSessionGeneration,
+  assertSessionCurrent,
 } from '../utils/token';
 import { useBlockingStore } from '../store/blocking';
 import { reportPossibleBackendDown, markBackendReached } from './health';
@@ -80,7 +82,14 @@ function isAuthEndpoint(url: string | undefined): boolean {
   return AUTH_ENDPOINTS.some((endpoint) => url.startsWith(endpoint));
 }
 
-apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) => {
+type SessionRequestConfig = InternalAxiosRequestConfig & {
+  _authGeneration?: number;
+  _retry?: boolean;
+};
+
+apiClient.interceptors.request.use(async (config: SessionRequestConfig) => {
+  if (config._authGeneration !== undefined) assertSessionCurrent(config._authGeneration);
+  const generation = getSessionGeneration();
   // Let axios set the correct multipart/form-data header with boundary for FormData
   if (config.data instanceof FormData && config.headers) {
     delete config.headers['Content-Type'];
@@ -91,6 +100,7 @@ apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) =>
 
     if (token && isTokenExpired(token)) {
       const newToken = await tokenRefreshManager.refreshAccessToken();
+      assertSessionCurrent(generation);
       if (newToken) {
         token = newToken;
       } else if (tokenRefreshManager.lastFailureWasTransport) {
@@ -106,6 +116,7 @@ apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) =>
       }
     } else if (!token && tokenStorage.getRefreshToken()) {
       const newToken = await tokenRefreshManager.refreshAccessToken();
+      assertSessionCurrent(generation);
       if (newToken) {
         token = newToken;
       }
@@ -113,6 +124,7 @@ apiClient.interceptors.request.use(async (config: InternalAxiosRequestConfig) =>
 
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
+      config._authGeneration = generation;
     }
   }
 
@@ -201,6 +213,8 @@ export function isAccountDeletedError(
 
 apiClient.interceptors.response.use(
   (response) => {
+    const generation = (response.config as SessionRequestConfig)._authGeneration;
+    if (generation !== undefined) assertSessionCurrent(generation);
     // First successful response means the app reached the backend at least once
     // (it bootstrapped). Recovery from a later outage can then just lift the
     // overlay instead of hard-reloading and losing unsaved UI state.
@@ -213,7 +227,10 @@ apiClient.interceptors.response.use(
     return response;
   },
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as SessionRequestConfig | undefined;
+    if (originalRequest?._authGeneration !== undefined) {
+      assertSessionCurrent(originalRequest._authGeneration);
+    }
 
     // Transport-level failure: no HTTP response at all (backend unreachable, DNS
     // failure, connection refused, timeout). All the coded guards below need
@@ -269,7 +286,7 @@ apiClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (originalRequest && error.response?.status === 401 && !originalRequest._retry) {
       const requestUrl = originalRequest.url || '';
 
       if (isAuthEndpoint(requestUrl)) {

@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useBlockingStore } from '../../store/blocking';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
-import { pingBackend, hasEverReachedBackend } from '../../api/health';
+import { pingBackend } from '../../api/health';
+import { useAuthStore, authInitializationNeedsRetry } from '../../store/auth';
 import { HEALTH } from '../../config/constants';
 import { CloudWarningIcon, RestartIcon } from '@/components/icons';
 import { Button } from '@/components/primitives';
@@ -13,8 +14,8 @@ import BlockingShell from './BlockingShell';
 /**
  * Full-screen state shown when the backend is unreachable (transport-level
  * failure), replacing the blank loader the app used to get stuck on. Polls the
- * liveness endpoint and, once the backend answers again, reloads to re-bootstrap
- * cleanly from whatever state the failed boot left behind. A manual retry button
+ * liveness endpoint and retries an unfinished auth bootstrap without discarding
+ * credentials. A manual retry button
  * lets the user force an immediate check.
  */
 export default function ServiceUnavailableScreen() {
@@ -24,18 +25,12 @@ export default function ServiceUnavailableScreen() {
   const [isChecking, setIsChecking] = useState(false);
   const isCheckingRef = useRef(false);
 
-  const recover = useCallback(() => {
+  const recover = useCallback(async () => {
+    await useAuthStore.getState().initialize();
+    if (authInitializationNeedsRetry()) return false;
     clearBlocking();
-    if (hasEverReachedBackend()) {
-      // The app was already loaded and merely covered by this overlay — its
-      // routes/forms are still mounted with their state. Lift the overlay and
-      // refetch instead of a hard reload that would discard unsaved input.
-      void queryClient.invalidateQueries();
-    } else {
-      // The initial bootstrap never reached the backend (blank loader) — reload
-      // to re-bootstrap cleanly now that it is back.
-      window.location.reload();
-    }
+    void queryClient.invalidateQueries();
+    return true;
   }, [clearBlocking, queryClient]);
 
   // Manual retry: immediate probe with a visible checking state.
@@ -45,7 +40,7 @@ export default function ServiceUnavailableScreen() {
     setIsChecking(true);
     try {
       if (await pingBackend()) {
-        recover();
+        await recover();
       }
     } finally {
       isCheckingRef.current = false;
@@ -62,8 +57,7 @@ export default function ServiceUnavailableScreen() {
     const tick = async () => {
       if (cancelled) return;
       if (await pingBackend()) {
-        if (!cancelled) recover();
-        return;
+        if (!cancelled && (await recover())) return;
       }
       if (!cancelled) timer = setTimeout(tick, HEALTH.RECOVERY_POLL_INTERVAL_MS);
     };
